@@ -17,7 +17,8 @@ import {
   SetupState,
 } from './setup';
 
-const SOCKET_URL = 'http://localhost:3001';
+const SOCKET_URL =
+  import.meta.env.VITE_SOCKET_URL ?? (import.meta.env.DEV ? 'http://localhost:3001' : '');
 type ViewState = 'setup' | 'playing' | 'finished';
 
 const difficultyOptions: BotDifficulty[] = ['easy', 'normal', 'hard'];
@@ -34,6 +35,7 @@ const defaultBotFormationList = (playerCount: number): string[] =>
 
 function App() {
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [view, setView] = useState<ViewState>('setup');
   const [gameState, setGameState] = useState<GameState | null>(null);
 
@@ -58,6 +60,13 @@ function App() {
   const [actionSubmitted, setActionSubmitted] = useState(false);
 
   useEffect(() => {
+    if (!SOCKET_URL) {
+      setConnectionError(
+        'Backend URL not configured. Set VITE_SOCKET_URL for hosted environments.',
+      );
+      return;
+    }
+
     const s = io(SOCKET_URL, { autoConnect: false });
     setSocket(s);
 
@@ -85,6 +94,12 @@ function App() {
 
     s.on('error', (msg: string) => {
       alert(msg);
+    });
+    s.on('connect_error', (error) => {
+      setConnectionError(error.message);
+    });
+    s.on('connect', () => {
+      setConnectionError(null);
     });
 
     return () => {
@@ -134,9 +149,15 @@ function App() {
   };
 
   const startNewGame = () => {
+    if (!socket) {
+      alert(
+        'Server is not configured or unavailable. Set VITE_SOCKET_URL to a reachable backend.',
+      );
+      return;
+    }
     const request = buildCreateGameRequest(setupState);
-    socket?.connect();
-    socket?.emit('createGame', request);
+    socket.connect();
+    socket.emit('createGame', request);
   };
 
   const submitAction = (action: PlayerAction | null) => {
@@ -305,10 +326,16 @@ function App() {
                 justifyContent: 'center',
                 gap: '0.5rem',
               }}
+              disabled={!socket}
               onClick={startNewGame}
             >
               <Play size={20} /> Start Game
             </button>
+            {connectionError && (
+              <div style={{ color: '#ff7a7a', fontSize: '0.85rem' }}>
+                Backend: {connectionError}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -413,4 +440,3 @@ function App() {
 }
 
 export default App;
-
