@@ -1,0 +1,16 @@
+{
+  "name": "territorial-drop-chess",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.2"
+  }
+}
