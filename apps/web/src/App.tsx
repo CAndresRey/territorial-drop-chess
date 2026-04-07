@@ -10,15 +10,18 @@ import {
 } from '@tdc/engine';
 import { Crown, Play, Settings, Swords, Users } from 'lucide-react';
 import { Board } from './Board';
+import { HelpButton, Tutorial } from './Tutorial';
 import {
   BotDifficulty,
   buildCreateGameRequest,
   deriveBoardSize,
   SetupState,
 } from './setup';
+import { QUICK_START_CHECKLIST } from './tutorial-content';
 
 const SOCKET_URL =
   import.meta.env.VITE_SOCKET_URL ?? (import.meta.env.DEV ? 'http://localhost:3001' : '');
+const TUTORIAL_STORAGE_KEY = 'tdc.tutorialSeen';
 type ViewState = 'setup' | 'playing' | 'finished';
 
 const difficultyOptions: BotDifficulty[] = ['easy', 'normal', 'hard'];
@@ -36,6 +39,7 @@ const defaultBotFormationList = (playerCount: number): string[] =>
 function App() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
   const [view, setView] = useState<ViewState>('setup');
   const [gameState, setGameState] = useState<GameState | null>(null);
 
@@ -58,6 +62,14 @@ function App() {
   const [selectedDrop, setSelectedDrop] = useState<PieceType | null>(null);
   const [validMoves, setValidMoves] = useState<Coordinate[]>([]);
   const [actionSubmitted, setActionSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const seen = window.localStorage.getItem(TUTORIAL_STORAGE_KEY) === '1';
+    if (!seen) {
+      setShowTutorial(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (!SOCKET_URL) {
@@ -160,6 +172,13 @@ function App() {
     socket.emit('createGame', request);
   };
 
+  const closeTutorial = () => {
+    setShowTutorial(false);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(TUTORIAL_STORAGE_KEY, '1');
+    }
+  };
+
   const submitAction = (action: PlayerAction | null) => {
     socket?.emit('submitAction', action);
     setActionSubmitted(true);
@@ -218,11 +237,24 @@ function App() {
 
   if (view === 'setup') {
     return (
+      <>
       <div className="app-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
         <div className="glass-panel panel" style={{ width: 520 }}>
           <h1 className="panel-title" style={{ fontSize: '2rem', marginBottom: '1rem' }}>
             Territorial Drop Chess
           </h1>
+
+          <div className="quick-guide">
+            <h2>How to play in 30 seconds</h2>
+            <ol>
+              {QUICK_START_CHECKLIST.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ol>
+            <button className="btn" onClick={() => setShowTutorial(true)}>
+              Open full tutorial
+            </button>
+          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div className="setup-item">
@@ -339,10 +371,14 @@ function App() {
           </div>
         </div>
       </div>
+      <HelpButton onClick={() => setShowTutorial(true)} />
+      {showTutorial && <Tutorial onClose={closeTutorial} />}
+      </>
     );
   }
 
   return (
+    <>
     <div className="app-container">
       <div className="sidebar left-sidebar">
         <div className="glass-panel panel">
@@ -436,6 +472,9 @@ function App() {
         </div>
       </div>
     </div>
+    <HelpButton onClick={() => setShowTutorial(true)} />
+    {showTutorial && <Tutorial onClose={closeTutorial} />}
+    </>
   );
 }
 
