@@ -263,3 +263,115 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 1.2rem;
   color: var(--text-muted);
 }
+
+.quick-guide {
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.quick-guide h2 {
+  font-size: 1rem;
+  color: var(--text-main);
+}
+
+.quick-guide ol {
+  margin-left: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.help-float-btn {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: var(--accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+}
+
+.tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  padding: 1rem;
+}
+
+.tutorial-modal {
+  width: min(700px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  padding: 1.2rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.tutorial-close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.tutorial-progress {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tutorial-title {
+  font-size: 1.35rem;
+}
+
+.tutorial-subtitle {
+  color: var(--text-muted);
+}
+
+.tutorial-content {
+  margin-left: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.tutorial-nav {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.4rem;
+}
+
+.tutorial-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tutorial-btn-play {
+  background: #16a34a;
+}

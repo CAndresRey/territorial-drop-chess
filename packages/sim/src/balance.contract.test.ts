@@ -7,6 +7,7 @@ import {
   buildStandardScenarioMatrix,
   computeFairnessMetrics,
 } from './balance';
+import { SimulationResult } from './index';
 
 const baseConfig: Omit<GameConfig, 'playerCount' | 'boardSize'> = {
   enabledRules: [],
@@ -65,17 +66,20 @@ describe('Balance analysis contract', () => {
     const report = BalanceAnalyzer.runScenarios(scenarios, {
       fairnessTolerance: 0.15,
       focusViolationTolerance: 0.2,
-      executor: (config) => {
+      executor: (config): SimulationResult => {
         if (config.playerCount === 4) {
           return {
-            winRates: { p1: 0.25, p2: 0.25, p3: 0.25, p4: 0.25 },
+            winRates: { p1: 0.25, p2: 0.25, p3: 0.25, p4: 0.25 } as Record<
+              PlayerId,
+              number
+            >,
             avgGameLength: 5,
             totalCaptures: 1.2,
             avgFocusViolations: 0.1,
           };
         }
         return {
-          winRates: { p1: 0.7, p2: 0.2, p3: 0.1 },
+          winRates: { p1: 0.7, p2: 0.2, p3: 0.1 } as Record<PlayerId, number>,
           avgGameLength: 5,
           totalCaptures: 1.4,
           avgFocusViolations: 0.3,
