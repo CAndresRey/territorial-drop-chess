@@ -1,5 +1,7 @@
 import {
   GameState,
+  Piece,
+  PieceType,
   PlayerAction,
   PlayerId,
   Bot,
@@ -8,6 +10,7 @@ import {
 } from '../../engine/src/types';
 import { applyAction } from '../../engine/src/moves';
 import { PIECE_VALUE } from '../../engine/src/moves';
+import { getMovesForPiece, isInCenter } from '../../engine/src/movement';
 import { AIEvaluator } from '../../ai-core/src/index';
 import { DifficultyLevel, getDifficultyProfile } from '../../difficulty/src/index';
 
@@ -135,6 +138,16 @@ export class HeuristicBot extends BaseBot {
       }
     }
 
+    const objectiveCandidate = selectObjectiveAction(
+      context.legalActions,
+      context.state,
+      this.id,
+      this.currentPhase,
+    );
+    if (objectiveCandidate) {
+      return objectiveCandidate;
+    }
+
     return this.selectBestAction(context, this.toPhasePersonality(this.currentPhase));
   }
 }
@@ -189,6 +202,200 @@ export const isImmediateCaptureAction = (
     (piece) => piece.position.x === action.to.x && piece.position.y === action.to.y,
   );
   return !!targetPiece && targetPiece.owner !== playerId;
+};
+
+const countOwnPiecesInCenter = (state: GameState, playerId: PlayerId): number =>
+  state.pieces.filter(
+    (piece) =>
+      piece.owner === playerId &&
+      isInCenter(piece.position, state.config.boardSize, state.config.playerCount),
+  ).length;
+
+const findPlayerKing = (state: GameState, playerId: PlayerId): Piece | undefined =>
+  state.pieces.find((piece) => piece.owner === playerId && piece.type === PieceType.King);
+
+const countKingThreats = (state: GameState, playerId: PlayerId): number => {
+  const king = findPlayerKing(state, playerId);
+  if (!king) return 0;
+
+  let threats = 0;
+  for (const piece of state.pieces) {
+    if (piece.owner === playerId) continue;
+    const moves = getMovesForPiece(piece, state);
+    if (moves.some((target) => target.x === king.position.x && target.y === king.position.y)) {
+      threats += 1;
+    }
+  }
+  return threats;
+};
+
+const countEnemyKingsThreatenedBy = (state: GameState, playerId: PlayerId): number => {
+  const enemyKings = state.pieces.filter(
+    (piece) => piece.owner !== playerId && piece.type === PieceType.King,
+  );
+  if (enemyKings.length === 0) return 0;
+
+  let threatened = 0;
+  for (const king of enemyKings) {
+    const threatenedBy = state.pieces
+      .filter((piece) => piece.owner === playerId)
+      .some((piece) => {
+        const moves = getMovesForPiece(piece, state);
+        return moves.some(
+          (target) => target.x === king.position.x && target.y === king.position.y,
+        );
+      });
+
+    if (threatenedBy) threatened += 1;
+  }
+
+  return threatened;
+};
+
+const totalMobility = (state: GameState, playerId: PlayerId): number => {
+  let mobility = 0;
+  for (const piece of state.pieces) {
+    if (piece.owner !== playerId) continue;
+    mobility += getMovesForPiece(piece, state).length;
+  }
+  return mobility;
+};
+
+const captureValueFromAction = (
+  action: PlayerAction,
+  state: GameState,
+  playerId: PlayerId,
+): number => {
+  if (action.type !== 'move') return 0;
+
+  const target = state.pieces.find(
+    (piece) => piece.position.x === action.to.x && piece.position.y === action.to.y,
+  );
+  if (!target || target.owner === playerId) return 0;
+  return PIECE_VALUE[target.type];
+};
+
+const dropTimingScore = (
+  action: PlayerAction,
+  state: GameState,
+  phase: HeuristicPhase,
+): number => {
+  if (action.type !== 'drop') return 0;
+
+  const phaseWeight: Record<HeuristicPhase, number> = {
+    opening: 1.2,
+    expansion: 2.2,
+    combat: 1.0,
+    endgame: 0.7,
+  };
+
+  const centerBonus = isInCenter(action.to, state.config.boardSize, state.config.playerCount)
+    ? 2.5
+    : 0.5;
+  return PIECE_VALUE[action.pieceType] * phaseWeight[phase] + centerBonus;
+};
+
+const objectiveWeightsByPhase: Record<
+  HeuristicPhase,
+  {
+    centerDelta: number;
+    kingSafetyDelta: number;
+    enemyKingPressureDelta: number;
+    mobilityDelta: number;
+    captureValue: number;
+    dropTiming: number;
+  }
+> = {
+  opening: {
+    centerDelta: 2.8,
+    kingSafetyDelta: 2.1,
+    enemyKingPressureDelta: 0.7,
+    mobilityDelta: 0.35,
+    captureValue: 0.8,
+    dropTiming: 1.0,
+  },
+  expansion: {
+    centerDelta: 2.1,
+    kingSafetyDelta: 2.4,
+    enemyKingPressureDelta: 0.9,
+    mobilityDelta: 0.25,
+    captureValue: 1.1,
+    dropTiming: 1.5,
+  },
+  combat: {
+    centerDelta: 0.8,
+    kingSafetyDelta: 3.0,
+    enemyKingPressureDelta: 1.4,
+    mobilityDelta: 0.2,
+    captureValue: 1.9,
+    dropTiming: 0.9,
+  },
+  endgame: {
+    centerDelta: 0.4,
+    kingSafetyDelta: 3.4,
+    enemyKingPressureDelta: 1.8,
+    mobilityDelta: 0.15,
+    captureValue: 2.2,
+    dropTiming: 0.5,
+  },
+};
+
+export const scoreObjectiveAction = (
+  action: PlayerAction,
+  state: GameState,
+  playerId: PlayerId,
+  phase: HeuristicPhase,
+): number => {
+  const nextState = applyAction(action, state);
+
+  const centerDelta =
+    countOwnPiecesInCenter(nextState, playerId) - countOwnPiecesInCenter(state, playerId);
+  const kingSafetyDelta = countKingThreats(state, playerId) - countKingThreats(nextState, playerId);
+  const enemyKingPressureDelta =
+    countEnemyKingsThreatenedBy(nextState, playerId) -
+    countEnemyKingsThreatenedBy(state, playerId);
+  const mobilityDelta = totalMobility(nextState, playerId) - totalMobility(state, playerId);
+  const captureValue = captureValueFromAction(action, state, playerId);
+  const dropTiming = dropTimingScore(action, state, phase);
+
+  const weights = objectiveWeightsByPhase[phase];
+  return (
+    centerDelta * weights.centerDelta +
+    kingSafetyDelta * weights.kingSafetyDelta +
+    enemyKingPressureDelta * weights.enemyKingPressureDelta +
+    mobilityDelta * weights.mobilityDelta +
+    captureValue * weights.captureValue +
+    dropTiming * weights.dropTiming
+  );
+};
+
+export const selectObjectiveAction = (
+  legalActions: PlayerAction[],
+  state: GameState,
+  playerId: PlayerId,
+  phase: HeuristicPhase,
+): PlayerAction | null => {
+  if (legalActions.length === 0) return null;
+
+  let bestAction: PlayerAction | null = null;
+  let bestScore = -Infinity;
+  let bestSeed = '';
+
+  for (const action of legalActions) {
+    const score = scoreObjectiveAction(action, state, playerId, phase);
+    const seed = actionSeedPart(action);
+
+    if (
+      score > bestScore ||
+      (score === bestScore && (bestAction === null || seed < bestSeed))
+    ) {
+      bestScore = score;
+      bestAction = action;
+      bestSeed = seed;
+    }
+  }
+
+  return bestAction;
 };
 
 const captureActionValue = (
