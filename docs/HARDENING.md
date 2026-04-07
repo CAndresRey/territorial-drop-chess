@@ -64,3 +64,17 @@ Configuration: 3 simulation iterations per player count, fixed seed, simultaneou
 - `@tdc/server` build: PASS
 - `@tdc/web` build: PASS
 
+## Deployment Packaging (M12)
+
+The repository includes containerized deployment artifacts:
+
+- `apps/server/Dockerfile` (multi-stage server image)
+- `apps/web/Dockerfile` (multi-stage static web image served by nginx)
+- `docker-compose.yml` (web + server orchestration with server healthcheck)
+- `.dockerignore` (to keep images lean and reproducible)
+
+Validation command:
+
+```powershell
+npx vitest --run apps/server/src/deployment.contract.test.ts
+```
