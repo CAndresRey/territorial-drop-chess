@@ -101,29 +101,66 @@ h1, h2, h3, h4, h5, h6 {
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.cell::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.015);
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .cell.is-center {
   background: var(--cell-center);
 }
 
+.cell.is-center::before {
+  border-color: rgba(99, 102, 241, 0.22);
+  background: rgba(99, 102, 241, 0.08);
+}
+
 .cell:hover {
   background: var(--cell-hover);
-  transform: scale(1.05);
   z-index: 10;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.cell:hover::before {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .cell.highlighted {
-  background: var(--cell-highlight);
-  box-shadow: inset 0 0 10px var(--accent-glow);
+  background: rgba(99, 102, 241, 0.22);
+  box-shadow: inset 0 0 18px rgba(99, 102, 241, 0.18);
+}
+
+.cell.highlighted::before {
+  inset: 2px;
+  border-width: 2px;
+  border-color: rgba(201, 255, 253, 0.45);
+  background: rgba(201, 255, 253, 0.08);
+}
+
+.cell.highlighted.is-empty::before {
+  border-color: rgba(255, 255, 255, 0.52);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .cell.selected {
   outline: 2px solid var(--text-main);
   outline-offset: -2px;
   background: rgba(255, 255, 255, 0.15);
+}
+
+.cell.selected::before {
+  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* Pieces */
@@ -418,4 +455,243 @@ h1, h2, h3, h4, h5, h6 {
 
 .tutorial-btn-play {
   background: #16a34a;
+}
+
+.board-meta-row {
+  width: min(80vh, 100%);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.board-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.board-chip-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.board-chip-center {
+  background: var(--cell-center);
+  border: 1px solid rgba(99, 102, 241, 0.45);
+}
+
+.board-chip-move {
+  background: var(--cell-highlight);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.board-chip-territory {
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.board-shell {
+  width: min(80vh, 100%);
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  grid-template-rows: 26px 1fr;
+  gap: 0.4rem;
+}
+
+.board-corner-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.board-axis {
+  display: grid;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.board-axis-x {
+  align-items: end;
+}
+
+.board-axis-y {
+  align-items: center;
+  justify-items: center;
+}
+
+.board-grid {
+  position: relative;
+}
+
+.board-center-badge {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 800;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0.3rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(8, 15, 18, 0.45);
+}
+
+.cell {
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.cell-coordinate {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  font-size: 0.52rem;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.24);
+  pointer-events: none;
+}
+
+.move-dot {
+  width: 28%;
+  height: 28%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 0 0 5px rgba(255, 255, 255, 0.12),
+    0 0 14px rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+}
+
+.piece-own {
+  outline: 2px solid rgba(255, 255, 255, 0.45);
+}
+
+.piece-enemy {
+  opacity: 0.92;
+}
+
+.board-guide-panel {
+  width: min(80vh, 100%);
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.board-guide-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.9rem;
+}
+
+.board-guide-header strong,
+.piece-guide-copy strong {
+  display: block;
+}
+
+.board-guide-header span,
+.piece-guide-copy span,
+.piece-guide-copy em {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+.board-guide-focus {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 240px;
+  padding: 0.55rem 0.7rem;
+  border-radius: 12px;
+  border: 1px solid rgba(14, 165, 164, 0.35);
+  background: rgba(14, 165, 164, 0.1);
+}
+
+.board-guide-focus-badge,
+.piece-guide-symbol {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+}
+
+.piece-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.piece-guide-card {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.65rem;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.piece-guide-card.is-active {
+  border-color: rgba(14, 165, 164, 0.4);
+  background: rgba(14, 165, 164, 0.08);
+}
+
+.piece-guide-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+@media (max-width: 1200px) {
+  .board-guide-header {
+    flex-direction: column;
+  }
+
+  .board-guide-focus {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .piece-guide-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .board-shell {
+    grid-template-columns: 22px 1fr;
+    grid-template-rows: 22px 1fr;
+    gap: 0.25rem;
+  }
+
+  .piece-guide-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cell-coordinate {
+    display: none;
+  }
 }

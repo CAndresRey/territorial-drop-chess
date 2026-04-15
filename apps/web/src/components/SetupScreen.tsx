@@ -1,7 +1,7 @@
 import { DEFAULT_FORMATION_TEMPLATES } from '@tdc/engine';
 import { Play, Settings, Users } from 'lucide-react';
-import { BotDifficulty } from '../setup';
 import { QUICK_START_CHECKLIST } from '../tutorial-content';
+import type { BotDifficulty } from '../setup';
 
 interface SetupScreenProps {
   playerCount: number;

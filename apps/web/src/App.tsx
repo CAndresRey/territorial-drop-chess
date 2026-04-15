@@ -8,11 +8,10 @@ import {
 } from '@tdc/engine';
 import { HelpButton, Tutorial } from './Tutorial';
 import {
-  BotDifficulty,
   buildCreateGameRequest,
   deriveBoardSize,
-  SetupState,
 } from './setup';
+import type { BotDifficulty, SetupState } from './setup';
 import {
   clampPlayerCount,
   defaultBotDifficultyList,

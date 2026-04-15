@@ -4,7 +4,7 @@
   "main": "src/index.ts",
   "scripts": {
     "build": "tsc",
-    "start": "tsx src/index.ts"
+    "start": "tsx --tsconfig ../../tsconfig.json src/index.ts"
   },
   "dependencies": {
     "@tdc/engine": "^1.0.0",

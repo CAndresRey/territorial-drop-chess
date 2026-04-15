@@ -4,6 +4,43 @@ import { Board } from '../Board';
 import { deriveTurnBanner, ViewState } from '../ui-state';
 import { FinishedPanel } from './FinishedPanel';
 
+const PIECE_GUIDE: Record<
+  PieceType,
+  { name: string; movement: string; emphasis?: string }
+> = {
+  [PieceType.King]: {
+    name: 'Rey',
+    movement: '1 casilla en cualquier direccion.',
+    emphasis: 'Si lo pierdes, quedas eliminado.',
+  },
+  [PieceType.Guard]: {
+    name: 'Guardia',
+    movement: '1 o 2 casillas en cualquier direccion, sin saltar piezas.',
+  },
+  [PieceType.Rook]: {
+    name: 'Torre',
+    movement: 'Lineas rectas: horizontal o vertical.',
+  },
+  [PieceType.Knight]: {
+    name: 'Caballo',
+    movement: 'Salto en L; puede saltar sobre otras piezas.',
+  },
+  [PieceType.Bishop]: {
+    name: 'Alfil',
+    movement: 'Diagonales largas.',
+  },
+  [PieceType.Pawn]: {
+    name: 'Peon',
+    movement: 'Avanza hacia el centro y captura en diagonal hacia el centro.',
+    emphasis: 'Su orientacion cambia segun el borde desde el que empieza.',
+  },
+  [PieceType.Veteran]: {
+    name: 'Veterano',
+    movement: 'Como el rey: 1 casilla en cualquier direccion.',
+    emphasis: 'Es un peon promovido al entrar en el centro.',
+  },
+};
+
 interface GameScreenProps {
   view: ViewState;
   gameState: GameState;
@@ -34,6 +71,14 @@ export const GameScreen = ({
   onRestart,
 }: GameScreenProps) => {
   const turnBanner = deriveTurnBanner(gameState, playerId, actionSubmitted);
+  const selectedPiece = selectedCoord
+    ? gameState.pieces.find(
+        (piece) =>
+          piece.position.x === selectedCoord.x &&
+          piece.position.y === selectedCoord.y,
+      )
+    : null;
+  const highlightedGuide = selectedPiece ? PIECE_GUIDE[selectedPiece.type] : null;
 
   return (
     <div className="app-container">
@@ -73,6 +118,42 @@ export const GameScreen = ({
           Round {gameState.round} / {gameState.config.turnSystem.maxRounds}
         </div>
         <div className="timer">{view === 'playing' ? `00:${`${timeLeft}`.padStart(2, '0')}` : 'GAME OVER'}</div>
+      </div>
+
+      <div className="glass-panel board-guide-panel">
+        <div className="board-guide-header">
+          <div>
+            <strong>Como leer este tablero</strong>
+            <span>
+              La grilla siempre es cuadrada. La parte distinta de este juego es que el
+              centro manda la orientacion de varias piezas, sobre todo del peon.
+            </span>
+          </div>
+          {highlightedGuide && (
+            <div className="board-guide-focus">
+              <span className="board-guide-focus-badge">{selectedPiece?.type}</span>
+              <div>
+                <strong>{highlightedGuide.name}</strong>
+                <span>{highlightedGuide.movement}</span>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="piece-guide-grid">
+          {Object.entries(PIECE_GUIDE).map(([symbol, guide]) => (
+            <div
+              key={symbol}
+              className={`piece-guide-card ${selectedPiece?.type === symbol ? 'is-active' : ''}`}
+            >
+              <div className="piece-guide-symbol">{symbol}</div>
+              <div className="piece-guide-copy">
+                <strong>{guide.name}</strong>
+                <span>{guide.movement}</span>
+                {guide.emphasis && <em>{guide.emphasis}</em>}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {view === 'finished' && <FinishedPanel gameState={gameState} onRestart={onRestart} />}

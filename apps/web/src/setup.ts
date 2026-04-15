@@ -1,10 +1,10 @@
 import { GameConfig, PlayerCount } from '@tdc/engine';
 import {
-  BotDifficulty,
   DEFAULT_GAME_CONFIG,
   deriveBoardSize,
   deriveDefaultRounds,
 } from '@tdc/setup-config';
+import type { BotDifficulty } from '@tdc/setup-config';
 
 export interface SetupState {
   playerId: string;
@@ -78,9 +78,5 @@ export const buildCreateGameRequest = (
   };
 };
 
-export {
-  BotDifficulty,
-  DEFAULT_GAME_CONFIG,
-  deriveBoardSize,
-  deriveDefaultRounds,
-};
+export { DEFAULT_GAME_CONFIG, deriveBoardSize, deriveDefaultRounds };
+export type { BotDifficulty };

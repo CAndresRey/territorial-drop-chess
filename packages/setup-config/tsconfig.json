@@ -6,7 +6,7 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "rootDir": "src",
+    "rootDir": "../../",
     "outDir": "dist",
     "declaration": true,
     "declarationMap": true,
@@ -17,6 +17,9 @@
       ],
       "@tdc/difficulty": [
         "../difficulty/src/index.ts"
+      ],
+      "@tdc/rules": [
+        "../rules/src/index.ts"
       ],
       "@tdc/setup-config": [
         "./src/index.ts"
