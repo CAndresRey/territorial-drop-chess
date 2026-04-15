@@ -1,12 +1,12 @@
 :root {
-  --bg-dark: #09090b;
-  --bg-darker: #050507;
-  --panel-bg: rgba(20, 20, 25, 0.6);
+  --bg-dark: #0b1316;
+  --bg-darker: #070d10;
+  --panel-bg: rgba(14, 26, 30, 0.72);
   --glass-border: rgba(255, 255, 255, 0.08);
   --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --accent: #6366f1;
-  --accent-glow: rgba(99, 102, 241, 0.4);
+  --text-muted: #9cb2bf;
+  --accent: #0ea5a4;
+  --accent-glow: rgba(14, 165, 164, 0.35);
   
   --p1-color: #DC143C;
   --p2-color: #4169E1;
@@ -38,8 +38,8 @@ body {
   background-color: var(--bg-darker);
   color: var(--text-main);
   background-image: 
-    radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.1), transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(220, 20, 60, 0.05), transparent 25%);
+    radial-gradient(circle at 15% 50%, rgba(14, 165, 164, 0.1), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(245, 158, 11, 0.08), transparent 25%);
   background-attachment: fixed;
   min-height: 100vh;
   overflow-x: hidden;
@@ -231,7 +231,7 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: 1px;
 }
 .btn:hover {
-  background: #4f46e5;
+  background: #0c8f8e;
   box-shadow: 0 0 15px var(--accent-glow);
   transform: translateY(-1px);
 }
@@ -264,6 +264,30 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-muted);
 }
 
+.turn-banner {
+  width: min(80vh, 100%);
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--glass-border);
+  font-size: 0.9rem;
+}
+
+.turn-banner.tone-info {
+  background: rgba(14, 165, 164, 0.14);
+  color: #c9fffd;
+}
+
+.turn-banner.tone-muted {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+}
+
+.turn-banner.tone-warning {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fde68a;
+}
+
 .quick-guide {
   border: 1px solid var(--glass-border);
   border-radius: 12px;
@@ -272,6 +296,26 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+}
+.setup-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.65rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.setup-item label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.setup-item select,
+.setup-item input[type='range'] {
+  width: 100%;
 }
 
 .quick-guide h2 {

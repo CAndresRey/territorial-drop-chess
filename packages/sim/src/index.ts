@@ -1,15 +1,16 @@
+import { getActionTargetOwner, MultiAgentAIManager } from '@tdc/ai-manager';
+import { HeuristicBot } from '@tdc/ai-strategies';
+import { DifficultyLevel, getDifficultyProfile } from '@tdc/difficulty';
 import {
+  createGame,
+  evaluateState,
   GameConfig,
+  getLegalActions,
   PersonalityProfile,
   PlayerAction,
   PlayerId,
-} from '../../engine/src/types';
-import { createGame } from '../../engine/src/board';
-import { resolveRound } from '../../engine/src/resolver';
-import { evaluateState, getLegalActions } from '../../engine/src/engine';
-import { HeuristicBot } from '../../ai-strategies/src/index';
-import { DifficultyLevel, getDifficultyProfile } from '../../difficulty/src/index';
-import { getActionTargetOwner, MultiAgentAIManager } from '../../ai-manager/src/index';
+  resolveRound,
+} from '@tdc/engine';
 
 export interface SimulationResult {
   winRates: Record<PlayerId, number>;
@@ -60,7 +61,8 @@ export class SimulationRunner {
       });
 
       while (state.status === 'playing') {
-        const legalActionsByPlayer: Partial<Record<PlayerId, PlayerAction[]>> = {};
+        const legalActionsByPlayer: Partial<Record<PlayerId, PlayerAction[]>> =
+          {};
         for (const bot of bots) {
           legalActionsByPlayer[bot.id] = getLegalActions(state, bot.id);
         }
@@ -82,7 +84,9 @@ export class SimulationRunner {
 
         const roundResult = resolveRound(state, actions);
         state = roundResult.state;
-        totalCaptures += roundResult.events.filter((e) => e.type === 'capture').length;
+        totalCaptures += roundResult.events.filter(
+          (e) => e.type === 'capture',
+        ).length;
       }
 
       totalRounds += state.round;
@@ -119,4 +123,5 @@ export class SimulationRunner {
   }
 }
 
-export * from './balance';
+export * from './balance.js';
+

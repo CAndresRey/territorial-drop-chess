@@ -1,0 +1,60 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "paths": {
+      "@tdc/engine": [
+        "./packages/engine/src/index.ts"
+      ],
+      "@tdc/entities": [
+        "./packages/entities/src/index.ts"
+      ],
+      "@tdc/ai-core": [
+        "./packages/ai-core/src/index.ts"
+      ],
+      "@tdc/ai-manager": [
+        "./packages/ai-manager/src/index.ts"
+      ],
+      "@tdc/ai-strategies": [
+        "./packages/ai-strategies/src/index.ts"
+      ],
+      "@tdc/difficulty": [
+        "./packages/difficulty/src/index.ts"
+      ],
+      "@tdc/rules": [
+        "./packages/rules/src/index.ts"
+      ],
+      "@tdc/turn-system": [
+        "./packages/turn-system/src/index.ts"
+      ],
+      "@tdc/sim": [
+        "./packages/sim/src/index.ts"
+      ],
+      "@tdc/setup-config": [
+        "./packages/setup-config/src/index.ts"
+      ],
+      "@tdc/board": [
+        "./packages/board/src/index.ts"
+      ],
+      "@tdc/utils": [
+        "./packages/utils/src/index.ts"
+      ],
+      "@tdc/scoring": [
+        "./packages/scoring/src/index.ts"
+      ]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

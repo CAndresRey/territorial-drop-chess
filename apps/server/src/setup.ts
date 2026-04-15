@@ -1,3 +1,4 @@
+import { DifficultyLevel } from '@tdc/difficulty';
 import {
   DEFAULT_FORMATION_TEMPLATES,
   GameConfig,
@@ -5,9 +6,11 @@ import {
   PlayerId,
 } from '@tdc/engine';
 import {
-  DIFFICULTY_LEVELS,
-  DifficultyLevel,
-} from '../../../packages/difficulty/src/index';
+  DEFAULT_GAME_CONFIG,
+  deriveBoardSize,
+  deriveDefaultRounds,
+  isValidDifficulty,
+} from '@tdc/setup-config';
 
 export interface CreateGameRequestPayload {
   playerId: PlayerId;
@@ -32,17 +35,6 @@ export interface NormalizedCreateGameRequest {
   formationSelections: Record<PlayerId, string>;
   maxFocusPerTarget: number;
 }
-
-const deriveBoardSize = (playerCount: number): number => {
-  if (playerCount === 2) return 11;
-  if (playerCount <= 4) return 13;
-  return 15;
-};
-
-const deriveRounds = (playerCount: number): number => (playerCount <= 4 ? 30 : 40);
-
-const isDifficulty = (value: string): value is DifficultyLevel =>
-  (DIFFICULTY_LEVELS as string[]).includes(value);
 
 const normalizePlayerCount = (count: number): PlayerCount => {
   if (count < 2 || count > 8) {
@@ -70,7 +62,7 @@ export const normalizeCreateGameRequest = (
   for (let i = 0; i < botCount; i++) {
     const id = `bot_${i + 1}`;
     const raw = setup.botDifficulties?.[i] ?? 'normal';
-    if (!isDifficulty(raw)) {
+    if (!isValidDifficulty(raw)) {
       throw new Error(`Invalid difficulty "${raw}"`);
     }
     botSettings.push({ id, difficulty: raw });
@@ -89,23 +81,18 @@ export const normalizeCreateGameRequest = (
     boardSize: deriveBoardSize(playerCount),
     turnSystem: payload.config.turnSystem ?? {
       type: 'simultaneous',
-      maxRounds: deriveRounds(playerCount),
+      maxRounds: deriveDefaultRounds(playerCount),
       timerSeconds: 30,
     },
-    scoring: payload.config.scoring ?? {
-      centerControl: 1,
-      captureValue: {} as any,
-      survivalBonus: 5,
-    },
+    scoring: payload.config.scoring ?? DEFAULT_GAME_CONFIG.scoring,
     enabledRules:
-      payload.config.enabledRules ?? ['multi-threat', 'center-bonus', 'territory-control'],
+      payload.config.enabledRules ?? DEFAULT_GAME_CONFIG.enabledRules,
     formation: {
       enabled: playerCount > 2,
       required: playerCount > 2,
-      templates:
-        payload.config.formation?.templates?.length
-          ? payload.config.formation.templates
-          : DEFAULT_FORMATION_TEMPLATES,
+      templates: payload.config.formation?.templates?.length
+        ? payload.config.formation.templates
+        : DEFAULT_FORMATION_TEMPLATES,
     },
   };
 

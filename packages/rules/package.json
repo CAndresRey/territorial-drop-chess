@@ -1,7 +1,12 @@
-﻿{
-    "private":  true,
-    "types":  "dist/index.d.ts",
-    "name":  "@tdc/rules",
-    "version":  "1.0.0",
-    "main":  "dist/index.js"
+{
+  "private": true,
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "name": "@tdc/rules",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest"
+  }
 }

@@ -3,8 +3,14 @@ import {
   MultiThreatRule,
   RuleManager,
   TerritoryControlRule,
-} from '../../rules/src/index';
-import { applyAction, cloneState, PIECE_VALUE, validateAction } from './moves';
+} from '@tdc/rules';
+import { isInCenter } from './movement.js';
+import {
+  applyAction,
+  cloneState,
+  PIECE_VALUE,
+  validateAction,
+} from './moves.js';
 import {
   Coordinate,
   GameState,
@@ -12,7 +18,7 @@ import {
   PieceType,
   PlayerAction,
   PlayerId,
-} from './types';
+} from './types.js';
 
 // ── End-game detection ────────────────────────────────────────────────────────
 
@@ -207,43 +213,124 @@ export const resolveRound = (
     }
   }
 
-  // Step 4: apply winning moves
-  for (const move of winningMoves) {
-    const piece = current.pieces.find((p) => p.id === move.pieceId);
-    if (!piece) continue;
-    const wasAt = { ...piece.position };
-    const wasPawn = piece.type === PieceType.Pawn;
+  // Step 4: apply winning moves SIMULTANEOUSLY (batch on snapshot)
+  // We must NOT apply moves sequentially — that would give first-mover advantage.
+  // Instead, determine all captures/positions from the pre-move snapshot, then mutate once.
+  {
+    const snapshot = current; // reference to pre-move state
+    const movesToApply: {
+      move: Extract<PlayerAction, { type: 'move' }>;
+      piece: Piece;
+      wasAt: Coordinate;
+      wasPawn: boolean;
+      capturedPieceId?: string;
+      capturedType?: PieceType;
+      capturedOwner?: PlayerId;
+    }[] = [];
 
-    current = applyAction(move, current);
+    // Build set of piece IDs that are moving this turn (they vacate their origin square)
+    const movingPieceIds = new Set(winningMoves.map((m) => m.pieceId));
 
-    const movedPiece = current.pieces.find((p) => p.id === move.pieceId);
-    events.push({
-      type: 'move',
-      playerId: piece.owner,
-      pieceId: move.pieceId,
-      from: wasAt,
-      to: move.to,
-    });
+    // Phase A: compute all effects from the snapshot
+    for (const move of winningMoves) {
+      const piece = snapshot.pieces.find((p) => p.id === move.pieceId);
+      if (!piece) continue;
+      const wasAt = { ...piece.position };
+      const wasPawn = piece.type === PieceType.Pawn;
 
-    if (wasPawn && movedPiece?.type === PieceType.Veteran) {
-      events.push({
-        type: 'promotion',
-        playerId: piece.owner,
-        pieceId: move.pieceId,
-        at: move.to,
+      // Check for capture at destination (on the snapshot, before any move was applied)
+      // BUT: if the piece at the destination is also moving away this turn, it's NOT a capture.
+      const capturedPiece = snapshot.pieces.find(
+        (p) =>
+          p.position.x === move.to.x &&
+          p.position.y === move.to.y &&
+          p.owner !== piece.owner &&
+          !movingPieceIds.has(p.id), // exclude pieces vacating simultaneously
+      );
+
+      movesToApply.push({
+        move,
+        piece,
+        wasAt,
+        wasPawn,
+        capturedPieceId: capturedPiece?.id,
+        capturedType: capturedPiece?.type,
+        capturedOwner: capturedPiece?.owner,
       });
     }
 
-    // Check for king capture/elimination
-    for (const pid of Object.keys(current.players)) {
-      if (pid !== piece.owner && !current.players[pid].isEliminated) {
-        const hasKing = current.pieces.some(
-          (p) => p.owner === pid && p.type === PieceType.King,
-        );
-        if (!hasKing) {
-          current.players[pid].isEliminated = true;
-          events.push({ type: 'elimination', playerId: pid });
+    // Phase B: apply all effects at once on a fresh clone
+    current = cloneState(snapshot);
+    const capturedPieceIds = new Set<string>();
+
+    for (const entry of movesToApply) {
+      if (entry.capturedPieceId) {
+        capturedPieceIds.add(entry.capturedPieceId);
+
+        // Score + reserve
+        const attackerPlayer = current.players[entry.piece.owner];
+        if (entry.capturedType === PieceType.King) {
+          attackerPlayer.score += PIECE_VALUE[PieceType.King];
+        } else {
+          const reserveType =
+            entry.capturedType === PieceType.Veteran
+              ? PieceType.Pawn
+              : entry.capturedType!;
+          attackerPlayer.dropReserve.push(reserveType);
+          attackerPlayer.score += PIECE_VALUE[entry.capturedType!];
         }
+
+        events.push({
+          type: 'capture',
+          attackerId: entry.piece.owner,
+          victimId: entry.capturedOwner!,
+          pieceId: entry.capturedPieceId,
+          at: entry.move.to,
+        });
+      }
+    }
+
+    // Remove all captured pieces
+    current.pieces = current.pieces.filter((p) => !capturedPieceIds.has(p.id));
+
+    // Move all pieces to their new positions
+    for (const entry of movesToApply) {
+      const pieceInCurrent = current.pieces.find(
+        (p) => p.id === entry.move.pieceId,
+      );
+      if (!pieceInCurrent) continue; // piece was captured itself
+      pieceInCurrent.position = entry.move.to;
+
+      // Promotion
+      const { boardSize, playerCount } = current.config;
+      if (entry.wasPawn && isInCenter(entry.move.to, boardSize, playerCount)) {
+        pieceInCurrent.type = PieceType.Veteran;
+        events.push({
+          type: 'promotion',
+          playerId: entry.piece.owner,
+          pieceId: entry.move.pieceId,
+          at: entry.move.to,
+        });
+      }
+
+      events.push({
+        type: 'move',
+        playerId: entry.piece.owner,
+        pieceId: entry.move.pieceId,
+        from: entry.wasAt,
+        to: entry.move.to,
+      });
+    }
+
+    // Check eliminations
+    for (const pid of Object.keys(current.players)) {
+      if (current.players[pid].isEliminated) continue;
+      const hasKing = current.pieces.some(
+        (p) => p.owner === pid && p.type === PieceType.King,
+      );
+      if (!hasKing) {
+        current.players[pid].isEliminated = true;
+        events.push({ type: 'elimination', playerId: pid });
       }
     }
   }

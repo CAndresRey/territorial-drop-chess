@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "allowImportingTsExtensions": true,
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "./apps/server/**/*.ts",
+    "./packages/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/node_modules/**",
+    "**/dist/**",
+    "coverage",
+    "**/*.test.ts",
+    "**/*.contract.test.ts"
+  ]
+}

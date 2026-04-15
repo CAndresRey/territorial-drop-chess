@@ -1,4 +1,9 @@
 import {
+  DEFAULT_FORMATION_TEMPLATES,
+  FORMATION_PIECE_COUNT,
+  validateFormationSelection,
+} from './formation.js';
+import {
   Coordinate,
   FormationTemplate,
   GameConfig,
@@ -7,12 +12,7 @@ import {
   PieceType,
   PlayerId,
   Territory,
-} from './types';
-import {
-  DEFAULT_FORMATION_TEMPLATES,
-  FORMATION_PIECE_COUNT,
-  validateFormationSelection,
-} from './formation';
+} from './types.js';
 
 const createPiece = (
   nextId: () => string,
@@ -158,28 +158,45 @@ const getStartingArmy = (
 
   if (playerCount === 2) {
     // 2 players: 11x11, K, R, N, B, Px4
-    // Player 1 (Bottom), Player 2 (Top)
+    // Player 1 (Bottom, moves up), Player 2 (Top, moves down)
     const yBase = index === 0 ? 0 : boardSize - 1;
     const yPawn = index === 0 ? 1 : boardSize - 2;
-    const kingX = Math.floor(boardSize / 2);
+    const startX = Math.floor(boardSize / 2) - 2; // 3
 
-    army.push(createPiece(nextId, playerId, PieceType.King, kingX, yBase));
-    army.push(createPiece(nextId, playerId, PieceType.Rook, 0, yBase));
-    army.push(createPiece(nextId, playerId, PieceType.Knight, 1, yBase));
-    army.push(createPiece(nextId, playerId, PieceType.Bishop, 2, yBase));
+    // For perfect balance, P2's starting X coordinates must be rotationally symmetric
+    // Rotate 180 degrees: x => boardSize - 1 - x
+    const getX = (x: number) => (index === 0 ? x : boardSize - 1 - x);
+
+    army.push(
+      createPiece(nextId, playerId, PieceType.Rook, getX(startX), yBase),
+    );
+    army.push(
+      createPiece(nextId, playerId, PieceType.Knight, getX(startX + 1), yBase),
+    );
+    army.push(
+      createPiece(nextId, playerId, PieceType.King, getX(startX + 2), yBase),
+    );
+    army.push(
+      createPiece(nextId, playerId, PieceType.Bishop, getX(startX + 3), yBase),
+    );
     for (let i = 0; i < 4; i++) {
-      army.push(createPiece(nextId, playerId, PieceType.Pawn, 3 + i, yPawn));
+      army.push(
+        createPiece(nextId, playerId, PieceType.Pawn, getX(startX + i), yPawn),
+      );
     }
     return army;
   }
 
   if (playerCount <= 4) {
     const max = boardSize - 1;
-    const pawnYTop = max;
-    const royalYTop = max - 2;
-    const backYTop = max - 3;
-    const royalYBottom = 2;
-    const backYBottom = 3;
+    // Top players move DOWN. Back is at max (10), Pawns are at max-3 (7).
+    const pawnYTop = max - 3;
+    const royalYTop = max - 1;
+    const backYTop = max;
+    // Bottom players move UP. Back is at 0, Pawns are at 3.
+    const pawnYBottom = 3;
+    const royalYBottom = 1;
+    const backYBottom = 0;
 
     // 3-4 players: Exact positions from GDD
     if (index === 0) {
@@ -187,7 +204,7 @@ const getStartingArmy = (
       [0, 1, 2, 3].forEach((x) =>
         army.push(createPiece(nextId, playerId, PieceType.Pawn, x, pawnYTop)),
       );
-      army.push(createPiece(nextId, playerId, PieceType.Pawn, 3, pawnYTop - 1));
+      army.push(createPiece(nextId, playerId, PieceType.Pawn, 3, pawnYTop + 1));
       army.push(createPiece(nextId, playerId, PieceType.King, 1, royalYTop));
       army.push(createPiece(nextId, playerId, PieceType.Guard, 2, royalYTop));
       army.push(createPiece(nextId, playerId, PieceType.Rook, 0, backYTop));
@@ -199,7 +216,7 @@ const getStartingArmy = (
         army.push(createPiece(nextId, playerId, PieceType.Pawn, x, pawnYTop)),
       );
       army.push(
-        createPiece(nextId, playerId, PieceType.Pawn, max - 3, pawnYTop - 1),
+        createPiece(nextId, playerId, PieceType.Pawn, max - 3, pawnYTop + 1),
       );
       army.push(
         createPiece(nextId, playerId, PieceType.Guard, max - 2, royalYTop),
@@ -216,25 +233,49 @@ const getStartingArmy = (
       army.push(createPiece(nextId, playerId, PieceType.Rook, max, backYTop));
     } else if (index === 2) {
       // SE (P3)
-      army.push(createPiece(nextId, playerId, PieceType.Bishop, max - 2, backYBottom));
-      army.push(createPiece(nextId, playerId, PieceType.Knight, max - 1, backYBottom));
-      army.push(createPiece(nextId, playerId, PieceType.Rook, max, backYBottom));
-      army.push(createPiece(nextId, playerId, PieceType.Guard, max - 2, royalYBottom));
-      army.push(createPiece(nextId, playerId, PieceType.King, max - 1, royalYBottom));
-      army.push(createPiece(nextId, playerId, PieceType.Pawn, max - 3, 1));
+      army.push(
+        createPiece(nextId, playerId, PieceType.Bishop, max - 2, backYBottom),
+      );
+      army.push(
+        createPiece(nextId, playerId, PieceType.Knight, max - 1, backYBottom),
+      );
+      army.push(
+        createPiece(nextId, playerId, PieceType.Rook, max, backYBottom),
+      );
+      army.push(
+        createPiece(nextId, playerId, PieceType.Guard, max - 2, royalYBottom),
+      );
+      army.push(
+        createPiece(nextId, playerId, PieceType.King, max - 1, royalYBottom),
+      );
+      army.push(
+        createPiece(nextId, playerId, PieceType.Pawn, max - 3, pawnYBottom - 1),
+      );
       [max - 3, max - 2, max - 1, max].forEach((x) =>
-        army.push(createPiece(nextId, playerId, PieceType.Pawn, x, 0)),
+        army.push(
+          createPiece(nextId, playerId, PieceType.Pawn, x, pawnYBottom),
+        ),
       );
     } else if (index === 3) {
       // SW (P4)
       army.push(createPiece(nextId, playerId, PieceType.Rook, 0, backYBottom));
-      army.push(createPiece(nextId, playerId, PieceType.Knight, 1, backYBottom));
-      army.push(createPiece(nextId, playerId, PieceType.Bishop, 2, backYBottom));
+      army.push(
+        createPiece(nextId, playerId, PieceType.Knight, 1, backYBottom),
+      );
+      army.push(
+        createPiece(nextId, playerId, PieceType.Bishop, 2, backYBottom),
+      );
       army.push(createPiece(nextId, playerId, PieceType.King, 1, royalYBottom));
-      army.push(createPiece(nextId, playerId, PieceType.Guard, 2, royalYBottom));
-      army.push(createPiece(nextId, playerId, PieceType.Pawn, 3, 1));
+      army.push(
+        createPiece(nextId, playerId, PieceType.Guard, 2, royalYBottom),
+      );
+      army.push(
+        createPiece(nextId, playerId, PieceType.Pawn, 3, pawnYBottom - 1),
+      );
       [0, 1, 2, 3].forEach((x) =>
-        army.push(createPiece(nextId, playerId, PieceType.Pawn, x, 0)),
+        army.push(
+          createPiece(nextId, playerId, PieceType.Pawn, x, pawnYBottom),
+        ),
       );
     }
     return army;
@@ -333,10 +374,9 @@ export const createGame = (
   const pieces: Piece[] = [];
   const players: GameState['players'] = {};
   const formationEnabled = normalizedConfig.formation?.enabled ?? false;
-  const formationTemplates =
-    normalizedConfig.formation?.templates?.length
-      ? normalizedConfig.formation.templates
-      : DEFAULT_FORMATION_TEMPLATES;
+  const formationTemplates = normalizedConfig.formation?.templates?.length
+    ? normalizedConfig.formation.templates
+    : DEFAULT_FORMATION_TEMPLATES;
   const selectedFormations = formationEnabled
     ? validateFormationSelection(
         playerIds,

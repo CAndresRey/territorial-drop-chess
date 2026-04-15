@@ -1,6 +1,10 @@
-import { DEFAULT_FORMATION_TEMPLATES, GameConfig, PlayerCount } from '@tdc/engine';
-
-export type BotDifficulty = 'easy' | 'normal' | 'hard';
+import { GameConfig, PlayerCount } from '@tdc/engine';
+import {
+  BotDifficulty,
+  DEFAULT_GAME_CONFIG,
+  deriveBoardSize,
+  deriveDefaultRounds,
+} from '@tdc/setup-config';
 
 export interface SetupState {
   playerId: string;
@@ -21,15 +25,6 @@ export interface CreateGameRequestPayload {
   };
 }
 
-export const deriveBoardSize = (playerCount: number): number => {
-  if (playerCount === 2) return 11;
-  if (playerCount <= 4) return 13;
-  return 15;
-};
-
-export const deriveDefaultRounds = (playerCount: number): number =>
-  playerCount <= 4 ? 30 : 40;
-
 export const buildCreateGameRequest = (
   setup: SetupState,
 ): CreateGameRequestPayload => {
@@ -44,6 +39,11 @@ export const buildCreateGameRequest = (
       `Invalid bot difficulties length: expected ${botCount}, got ${setup.botDifficulties.length}`,
     );
   }
+
+  const normalizedMaxFocusPerTarget = Math.max(
+    1,
+    Math.min(2, Math.floor(setup.maxFocusPerTarget)),
+  );
 
   const formationSelections: Record<string, string> = {
     [setup.playerId]: setup.humanFormationId,
@@ -62,18 +62,25 @@ export const buildCreateGameRequest = (
         maxRounds: deriveDefaultRounds(setup.playerCount),
         timerSeconds: 30,
       },
-      scoring: { centerControl: 1, captureValue: {} as any, survivalBonus: 5 },
-      enabledRules: ['multi-threat', 'center-bonus', 'territory-control'],
+      scoring: DEFAULT_GAME_CONFIG.scoring,
+      enabledRules: DEFAULT_GAME_CONFIG.enabledRules,
       formation: {
         enabled: setup.playerCount > 2,
         required: setup.playerCount > 2,
-        templates: DEFAULT_FORMATION_TEMPLATES,
+        templates: DEFAULT_GAME_CONFIG.formationTemplates,
       },
     },
     setup: {
       botDifficulties: [...setup.botDifficulties],
       formationSelections,
-      maxFocusPerTarget: setup.maxFocusPerTarget,
+      maxFocusPerTarget: normalizedMaxFocusPerTarget,
     },
   };
+};
+
+export {
+  BotDifficulty,
+  DEFAULT_GAME_CONFIG,
+  deriveBoardSize,
+  deriveDefaultRounds,
 };

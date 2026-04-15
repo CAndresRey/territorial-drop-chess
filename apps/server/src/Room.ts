@@ -7,13 +7,15 @@ import {
   PlayerId,
   resolveRound,
 } from '@tdc/engine';
-import { HeuristicBot } from '../../../packages/ai-strategies/src/index';
-import { getDifficultyProfile } from '../../../packages/difficulty/src/index';
-import { MultiAgentAIManager } from '../../../packages/ai-manager/src/index';
 import {
   CreateGameRequestPayload,
   normalizeCreateGameRequest,
 } from './setup';
+import {
+  HeuristicBot,
+  MultiAgentAIManager,
+  getDifficultyProfile,
+} from './domain-adapters';
 
 export const TURN_DURATION_MS = 30000;
 

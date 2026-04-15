@@ -22,6 +22,44 @@ const makeState = (type: 'simultaneous' | 'sequential'): GameState =>
   }) as any;
 
 describe('TurnOrchestrator contract', () => {
+  it('returns active players in deterministic priority order', () => {
+    const state = makeState('simultaneous');
+    state.players.p1.score = 5;
+    state.players.p2.score = 1;
+
+    expect(TurnOrchestrator.getActivePlayers(state)).toStrictEqual(['p2', 'p1']);
+  });
+
+  it('returns the first active player when no current player is provided', () => {
+    const state = makeState('sequential');
+    state.players.p1.score = 3;
+    state.players.p2.score = 1;
+
+    expect(TurnOrchestrator.getNextPlayer(state)).toBe('p2');
+  });
+
+  it('advances to the next non-eliminated player in sequential order', () => {
+    const state = makeState('sequential');
+    state.players.p1.score = 0;
+    state.players.p2.score = 1;
+
+    expect(TurnOrchestrator.getNextPlayer(state, 'p1')).toBe('p2');
+    expect(TurnOrchestrator.getNextPlayer(state, 'p2')).toBe('p1');
+  });
+
+  it('skips eliminated players when selecting the next player', () => {
+    const state = makeState('sequential');
+    state.players.p2.isEliminated = true;
+
+    expect(TurnOrchestrator.getNextPlayer(state, 'p1')).toBe('p1');
+  });
+
+  it('marks a player as skippable when they have no legal actions', () => {
+    const state = makeState('sequential');
+
+    expect(TurnOrchestrator.shouldSkipTurn(state, 'p1')).toBe(true);
+  });
+
   it('returns a round result for simultaneous turns', () => {
     const result = TurnOrchestrator.resolve(makeState('simultaneous'), { p1: null, p2: null } as any);
     expect(result.state.round).toBe(2);

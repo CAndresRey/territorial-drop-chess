@@ -1,4 +1,4 @@
-import { PersonalityProfile } from '../../engine/src/types';
+import { PersonalityProfile } from '@tdc/engine';
 
 export type DifficultyLevel = 'easy' | 'normal' | 'hard';
 
@@ -28,11 +28,12 @@ const DIFFICULTY_PROFILES: Record<DifficultyLevel, PersonalityProfile> = {
   },
 };
 
-export const listDifficultyLevels = (): DifficultyLevel[] => [...DIFFICULTY_LEVELS];
+export const listDifficultyLevels = (): DifficultyLevel[] => [
+  ...DIFFICULTY_LEVELS,
+];
 
 export const getDifficultyProfile = (
   level: DifficultyLevel,
 ): PersonalityProfile => ({
   ...DIFFICULTY_PROFILES[level],
 });
-

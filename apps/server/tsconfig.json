@@ -7,9 +7,17 @@
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "rootDir": "src",
     "outDir": "dist",
-    "rootDir": "../.."
+    "declaration": true,
+    "declarationMap": true
   },
-  "include": ["src/**/*", "../../packages/**/*.ts"],
-  "exclude": ["**/*.test.ts", "**/*.contract.test.ts"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.contract.test.ts",
+    "dist"
+  ]
 }

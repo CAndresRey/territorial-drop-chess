@@ -186,4 +186,34 @@ describe('createGame contract', () => {
 
     expect(createWithUnknownFormation).toThrowError(/unknown formation/i);
   });
+
+  it('falls back to the first formation when required is false and a selection is missing', () => {
+    const players = ['p1', 'p2', 'p3', 'p4'];
+    const defaultTemplate = DEFAULT_FORMATION_TEMPLATES[0];
+    const state = createGame(
+      {
+        ...baseConfig,
+        formation: {
+          enabled: true,
+          required: false,
+          templates: DEFAULT_FORMATION_TEMPLATES,
+        },
+      },
+      players,
+      {
+        formationSelections: {
+          p1: DEFAULT_FORMATION_TEMPLATES[1].id,
+          p2: DEFAULT_FORMATION_TEMPLATES[2].id,
+          // p3 intentionally missing
+          p4: DEFAULT_FORMATION_TEMPLATES[1].id,
+        },
+      },
+    );
+
+    const p3Types = state.pieces
+      .filter((piece) => piece.owner === 'p3')
+      .map((piece) => piece.type)
+      .sort();
+    expect(p3Types).toStrictEqual([...defaultTemplate.pieces].sort());
+  });
 });

@@ -1,0 +1,20 @@
+{
+  "name": "@tdc/setup-config",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Shared game setup and configuration utilities",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@tdc/engine": "*",
+    "@tdc/difficulty": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vitest": "^0.34.0"
+  }
+}

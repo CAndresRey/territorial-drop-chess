@@ -1,11 +1,15 @@
-import { DifficultyLevel, getDifficultyProfile } from '../../difficulty/src/index';
+import { DifficultyLevel, getDifficultyProfile } from '@tdc/difficulty';
 import {
   GameConfig,
   PersonalityProfile,
   PlayerCount,
   PlayerId,
-} from '../../engine/src/types';
-import { SimulationOptions, SimulationResult, SimulationRunner } from './index';
+} from '@tdc/engine';
+import {
+  SimulationOptions,
+  SimulationResult,
+  SimulationRunner,
+} from './index.js';
 
 export interface FairnessMetrics {
   expectedWinRate: number;
@@ -92,7 +96,9 @@ export const computeFairnessMetrics = (
   }
 
   const expectedWinRate = 1 / playerIds.length;
-  const deviations = playerIds.map((id) => Math.abs(winRates[id] - expectedWinRate));
+  const deviations = playerIds.map((id) =>
+    Math.abs(winRates[id] - expectedWinRate),
+  );
   const maxDeviation = Math.max(...deviations);
   const variance =
     playerIds.reduce(
@@ -132,7 +138,10 @@ export class BalanceAnalyzer {
         scenario.iterations ?? defaultIterations,
         scenario.options,
       );
-      const fairness = computeFairnessMetrics(simulation.winRates, fairnessTolerance);
+      const fairness = computeFairnessMetrics(
+        simulation.winRates,
+        fairnessTolerance,
+      );
       const passed =
         fairness.isBalanced &&
         simulation.avgFocusViolations <= focusViolationTolerance;
@@ -164,16 +173,21 @@ export class BalanceAnalyzer {
       results.reduce((sum, result) => sum + result.fairness.maxDeviation, 0) /
       results.length;
     const averageFocusViolations =
-      results.reduce((sum, result) => sum + result.simulation.avgFocusViolations, 0) /
-      results.length;
+      results.reduce(
+        (sum, result) => sum + result.simulation.avgFocusViolations,
+        0,
+      ) / results.length;
 
-    const worst = results.reduce((acc, current) => {
-      if (!acc) return current;
-      return getScenarioPenalty(current, focusViolationTolerance) >
-        getScenarioPenalty(acc, focusViolationTolerance)
-        ? current
-        : acc;
-    }, undefined as BalanceScenarioResult | undefined);
+    const worst = results.reduce(
+      (acc, current) => {
+        if (!acc) return current;
+        return getScenarioPenalty(current, focusViolationTolerance) >
+          getScenarioPenalty(acc, focusViolationTolerance)
+          ? current
+          : acc;
+      },
+      undefined as BalanceScenarioResult | undefined,
+    );
 
     return {
       results,

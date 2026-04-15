@@ -1,12 +1,22 @@
-import { Coordinate, Piece, PieceType, GameState } from './types';
+import { Coordinate, GameState, Piece, PieceType } from './types.js';
 
 /** Is a coordinate on the board? */
 export const inBounds = (c: Coordinate, boardSize: number): boolean =>
   c.x >= 0 && c.x < boardSize && c.y >= 0 && c.y < boardSize;
 
 /** Get the piece on a given square, or undefined */
-export const pieceAt = (pieces: Piece[], coord: Coordinate): Piece | undefined =>
-  pieces.find(p => p.position.x === coord.x && p.position.y === coord.y);
+export const pieceAt = (
+  pieces: Piece[],
+  coord: Coordinate,
+): Piece | undefined =>
+  pieces.find((p) => p.position.x === coord.x && p.position.y === coord.y);
+
+export type MovementRule = (state: GameState, piece: Piece) => Coordinate[];
+
+export type PieceDefinition = {
+  type: PieceType;
+  movement: MovementRule;
+};
 
 /** Cast a sliding ray and collect valid squares until blocked */
 const slideRay = (
@@ -15,7 +25,7 @@ const slideRay = (
   dy: number,
   pieces: Piece[],
   owner: string,
-  boardSize: number
+  boardSize: number,
 ): Coordinate[] => {
   const moves: Coordinate[] = [];
   let cur = { x: from.x + dx, y: from.y + dy };
@@ -32,7 +42,9 @@ const slideRay = (
 };
 
 // ── King ────────────────────────────────────────────────────────────────────
-const getKingMoves = (piece: Piece, pieces: Piece[], boardSize: number): Coordinate[] => {
+const getKingMoves: MovementRule = (state, piece) => {
+  const { pieces, config } = state;
+  const { boardSize } = config;
   const moves: Coordinate[] = [];
   for (let dx = -1; dx <= 1; dx++) {
     for (let dy = -1; dy <= 1; dy++) {
@@ -47,11 +59,19 @@ const getKingMoves = (piece: Piece, pieces: Piece[], boardSize: number): Coordin
 };
 
 // ── Guard (1-2 squares any direction, no jump) ──────────────────────────────
-const getGuardMoves = (piece: Piece, pieces: Piece[], boardSize: number): Coordinate[] => {
+const getGuardMoves: MovementRule = (state, piece) => {
+  const { pieces, config } = state;
+  const { boardSize } = config;
   const moves: Coordinate[] = [];
   const dirs = [
-    [1, 0], [-1, 0], [0, 1], [0, -1],
-    [1, 1], [1, -1], [-1, 1], [-1, -1]
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+    [1, 1],
+    [1, -1],
+    [-1, 1],
+    [-1, -1],
   ];
   for (const [dx, dy] of dirs) {
     // Step 1
@@ -73,27 +93,53 @@ const getGuardMoves = (piece: Piece, pieces: Piece[], boardSize: number): Coordi
 };
 
 // ── Rook (orthogonal slide) ──────────────────────────────────────────────────
-const getRookMoves = (piece: Piece, pieces: Piece[], boardSize: number): Coordinate[] => {
-  const rays = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-  return rays.flatMap(([dx, dy]) => slideRay(piece.position, dx, dy, pieces, piece.owner, boardSize));
+const getRookMoves: MovementRule = (state, piece) => {
+  const { pieces, config } = state;
+  const { boardSize } = config;
+  const rays = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ];
+  return rays.flatMap(([dx, dy]) =>
+    slideRay(piece.position, dx, dy, pieces, piece.owner, boardSize),
+  );
 };
 
 // ── Bishop (diagonal slide) ──────────────────────────────────────────────────
-const getBishopMoves = (piece: Piece, pieces: Piece[], boardSize: number): Coordinate[] => {
-  const rays = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
-  return rays.flatMap(([dx, dy]) => slideRay(piece.position, dx, dy, pieces, piece.owner, boardSize));
+const getBishopMoves: MovementRule = (state, piece) => {
+  const { pieces, config } = state;
+  const { boardSize } = config;
+  const rays = [
+    [1, 1],
+    [1, -1],
+    [-1, 1],
+    [-1, -1],
+  ];
+  return rays.flatMap(([dx, dy]) =>
+    slideRay(piece.position, dx, dy, pieces, piece.owner, boardSize),
+  );
 };
 
 // ── Knight (L-shape, can jump) ───────────────────────────────────────────────
-const getKnightMoves = (piece: Piece, pieces: Piece[], boardSize: number): Coordinate[] => {
+const getKnightMoves: MovementRule = (state, piece) => {
+  const { pieces, config } = state;
+  const { boardSize } = config;
   const offsets = [
-    [2, 1], [2, -1], [-2, 1], [-2, -1],
-    [1, 2], [1, -2], [-1, 2], [-1, -2]
+    [2, 1],
+    [2, -1],
+    [-2, 1],
+    [-2, -1],
+    [1, 2],
+    [1, -2],
+    [-1, 2],
+    [-1, -2],
   ];
   return offsets
     .map(([dx, dy]) => ({ x: piece.position.x + dx, y: piece.position.y + dy }))
-    .filter(t => inBounds(t, boardSize))
-    .filter(t => {
+    .filter((t) => inBounds(t, boardSize))
+    .filter((t) => {
       const occ = pieceAt(pieces, t);
       return !occ || occ.owner !== piece.owner;
     });
@@ -108,7 +154,11 @@ export const getCenterBounds = (boardSize: number, playerCount: number) => {
   return { min: start, max: end };
 };
 
-export const isInCenter = (c: Coordinate, boardSize: number, playerCount: number): boolean => {
+export const isInCenter = (
+  c: Coordinate,
+  boardSize: number,
+  playerCount: number,
+): boolean => {
   const { min, max } = getCenterBounds(boardSize, playerCount);
   return c.x >= min && c.x <= max && c.y >= min && c.y <= max;
 };
@@ -116,16 +166,19 @@ export const isInCenter = (c: Coordinate, boardSize: number, playerCount: number
 /**
  * Compute the primary direction vector for a Pawn based on its target center.
  */
-export const getPawnDirection = (pos: Coordinate, boardSize: number): { dx: number; dy: number } => {
+export const getPawnDirection = (
+  pos: Coordinate,
+  boardSize: number,
+): { dx: number; dy: number } => {
   const center = (boardSize - 1) / 2;
   const rawDx = center - pos.x;
   const rawDy = center - pos.y;
-  
+
   if (rawDx === 0 && rawDy === 0) return { dx: 0, dy: 0 };
-  
+
   const adx = Math.abs(rawDx);
   const ady = Math.abs(rawDy);
-  
+
   if (adx >= ady) {
     return { dx: Math.sign(rawDx), dy: adx === ady ? Math.sign(rawDy) : 0 };
   } else {
@@ -133,7 +186,9 @@ export const getPawnDirection = (pos: Coordinate, boardSize: number): { dx: numb
   }
 };
 
-const getPawnMoves = (piece: Piece, pieces: Piece[], boardSize: number): Coordinate[] => {
+const getPawnMoves: MovementRule = (state, piece) => {
+  const { pieces, config } = state;
+  const { boardSize } = config;
   const moves: Coordinate[] = [];
   const { dx, dy } = getPawnDirection(piece.position, boardSize);
   if (dx === 0 && dy === 0) return [];
@@ -165,22 +220,45 @@ const getPawnMoves = (piece: Piece, pieces: Piece[], boardSize: number): Coordin
 };
 
 // ── Veteran (like King — 1 any direction) ───────────────────────────────────
-const getVeteranMoves = (piece: Piece, pieces: Piece[], boardSize: number): Coordinate[] =>
-  getKingMoves(piece, pieces, boardSize);
+const getVeteranMoves: MovementRule = (state, piece) =>
+  getKingMoves(state, piece);
+
+export const PIECE_DEFINITIONS: Record<PieceType, PieceDefinition> = {
+  [PieceType.King]: {
+    type: PieceType.King,
+    movement: getKingMoves,
+  },
+  [PieceType.Guard]: {
+    type: PieceType.Guard,
+    movement: getGuardMoves,
+  },
+  [PieceType.Rook]: {
+    type: PieceType.Rook,
+    movement: getRookMoves,
+  },
+  [PieceType.Knight]: {
+    type: PieceType.Knight,
+    movement: getKnightMoves,
+  },
+  [PieceType.Bishop]: {
+    type: PieceType.Bishop,
+    movement: getBishopMoves,
+  },
+  [PieceType.Pawn]: {
+    type: PieceType.Pawn,
+    movement: getPawnMoves,
+  },
+  [PieceType.Veteran]: {
+    type: PieceType.Veteran,
+    movement: getVeteranMoves,
+  },
+};
+
+export const getPieceDefinition = (pieceType: PieceType): PieceDefinition =>
+  PIECE_DEFINITIONS[pieceType];
 
 // ── Public API ───────────────────────────────────────────────────────────────
-export const getMovesForPiece = (piece: Piece, state: GameState): Coordinate[] => {
-  const { pieces, config } = state;
-  const { boardSize } = config;
-  
-  switch (piece.type) {
-    case PieceType.King:    return getKingMoves(piece, pieces, boardSize);
-    case PieceType.Guard:   return getGuardMoves(piece, pieces, boardSize);
-    case PieceType.Rook:    return getRookMoves(piece, pieces, boardSize);
-    case PieceType.Bishop:  return getBishopMoves(piece, pieces, boardSize);
-    case PieceType.Knight:  return getKnightMoves(piece, pieces, boardSize);
-    case PieceType.Pawn:    return getPawnMoves(piece, pieces, boardSize);
-    case PieceType.Veteran: return getVeteranMoves(piece, pieces, boardSize);
-    default:                return [];
-  }
-};
+export const getMovesForPiece = (
+  piece: Piece,
+  state: GameState,
+): Coordinate[] => getPieceDefinition(piece.type).movement(state, piece);

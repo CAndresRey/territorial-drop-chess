@@ -1,4 +1,3 @@
-import { getMovesForPiece, pieceAt } from '../../engine/src/movement';
 import {
   Coordinate,
   GameState,
@@ -8,7 +7,9 @@ import {
   RuleModule,
   ScoreDelta,
   ValidationResult,
-} from '../../engine/src/types';
+  getMovesForPiece,
+  pieceAt,
+} from '@tdc/engine';
 
 export class RuleManager {
   private rules: RuleModule[] = [];
@@ -54,8 +55,11 @@ export const MultiThreatRule: RuleModule = {
   onValidateMove({ state, action }) {
     if (action.type !== 'move') return { isValid: true };
     if (state.config.playerCount < 3) return { isValid: true };
-    const movingPiece = state.pieces.find((piece) => piece.id === action.pieceId);
-    if (!movingPiece || movingPiece.type === PieceType.King) return { isValid: true };
+    const movingPiece = state.pieces.find(
+      (piece) => piece.id === action.pieceId,
+    );
+    if (!movingPiece || movingPiece.type === PieceType.King)
+      return { isValid: true };
 
     const simulatedState: GameState = {
       ...state,
@@ -76,7 +80,9 @@ export const MultiThreatRule: RuleModule = {
     );
 
     for (const owner of opponentOwners) {
-      const ownerPieces = simulatedState.pieces.filter((piece) => piece.owner === owner);
+      const ownerPieces = simulatedState.pieces.filter(
+        (piece) => piece.owner === owner,
+      );
       const canAttackTarget = ownerPieces.some((piece) =>
         getMovesForPiece(piece, simulatedState).some(
           (move) => move.x === action.to.x && move.y === action.to.y,

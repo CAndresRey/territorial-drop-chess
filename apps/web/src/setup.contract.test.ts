@@ -57,5 +57,18 @@ describe('web setup contract', () => {
 
     expect(invalid).toThrowError(/bot formations/i);
   });
-});
 
+  it('clamps anti-collusion cap to supported range [1,2]', () => {
+    const low = buildCreateGameRequest({
+      ...baseSetup(),
+      maxFocusPerTarget: 0,
+    });
+    const high = buildCreateGameRequest({
+      ...baseSetup(),
+      maxFocusPerTarget: 5,
+    });
+
+    expect(low.setup.maxFocusPerTarget).toBe(1);
+    expect(high.setup.maxFocusPerTarget).toBe(2);
+  });
+});

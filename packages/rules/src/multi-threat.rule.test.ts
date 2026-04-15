@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MultiThreatRule } from './index';
-import { GameState, PieceType, PlayerAction } from '../../engine/src/types';
+import { GameState, PieceType, PlayerAction } from '@tdc/engine';
 
 const makeState = (playerCount: 2 | 3): GameState => ({
   config: {

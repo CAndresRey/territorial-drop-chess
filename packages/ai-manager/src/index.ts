@@ -1,4 +1,4 @@
-import { Bot, GameState, PlayerAction, PlayerId } from '../../engine/src/types';
+import { Bot, GameState, PlayerAction, PlayerId } from '@tdc/engine';
 
 export interface AIManagerOptions {
   maxFocusPerTarget?: number;
@@ -72,8 +72,11 @@ export class MultiAgentAIManager {
             : `${options.seed}|r${state.round}|${bot.id}`,
       });
 
-      const poolByKey = new Map(candidatePool.map((action) => [actionKey(action), action]));
-      const safeDecision = poolByKey.get(actionKey(decided)) ?? candidatePool[0];
+      const poolByKey = new Map(
+        candidatePool.map((action) => [actionKey(action), action]),
+      );
+      const safeDecision =
+        poolByKey.get(actionKey(decided)) ?? candidatePool[0];
       decisions[bot.id] = safeDecision;
 
       const targetOwner = getActionTargetOwner(safeDecision, state);

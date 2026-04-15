@@ -5,8 +5,26 @@
     "moduleResolution": "bundler",
     "strict": true,
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "../../",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "paths": {
+      "@tdc/rules": [
+        "../rules/src/index.ts"
+      ],
+      "@tdc/engine": [
+        "./src/index.ts"
+      ]
+    }
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

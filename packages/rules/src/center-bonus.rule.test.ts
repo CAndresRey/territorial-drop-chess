@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CenterBonusRule } from './index';
-import { GameState, PieceType } from '../../engine/src/types';
+import { GameState, PieceType } from '@tdc/engine';
 
 const makeState = (playerCount: 2 | 4): GameState => ({
   config: {

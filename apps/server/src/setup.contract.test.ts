@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_FORMATION_TEMPLATES } from '@tdc/engine';
-import { DifficultyLevel } from '../../../packages/difficulty/src/index';
+import { DifficultyLevel } from './domain-adapters';
 import {
   CreateGameRequestPayload,
   normalizeCreateGameRequest,
@@ -65,4 +65,3 @@ describe('server setup normalization contract', () => {
     expect(() => normalizeCreateGameRequest(payload)).toThrowError(/difficulty/i);
   });
 });
-

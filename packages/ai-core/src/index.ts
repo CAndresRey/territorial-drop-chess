@@ -1,6 +1,13 @@
-import { GameState, PlayerId, Evaluation, PieceType, PersonalityProfile } from '../../engine/src/types';
-import { PIECE_VALUE } from '../../engine/src/moves';
-import { isInCenter, getMovesForPiece } from '../../engine/src/movement';
+import {
+  Evaluation,
+  GameState,
+  getMovesForPiece,
+  isInCenter,
+  PersonalityProfile,
+  PIECE_VALUE,
+  PieceType,
+  PlayerId,
+} from '@tdc/engine';
 
 export interface EvaluationOptions {
   seed?: number | string;
@@ -18,7 +25,7 @@ const hashSeed = (seed: number | string): number => {
 
 const seededNoise = (seed: number | string): number => {
   // Mulberry32
-  let t = hashSeed(seed) + 0x6D2B79F5;
+  let t = hashSeed(seed) + 0x6d2b79f5;
   t = Math.imul(t ^ (t >>> 15), t | 1);
   t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
   const value = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
@@ -35,7 +42,11 @@ export class AIEvaluator {
     const { boardSize, playerCount } = state.config;
     const player = state.players[playerId];
 
-    if (player.isEliminated) return { score: -1000, details: { material: 0, centerControl: 0, risk: 0, mobility: 0 } };
+    if (player.isEliminated)
+      return {
+        score: -1000,
+        details: { material: 0, centerControl: 0, risk: 0, mobility: 0 },
+      };
 
     // 1. Material score
     let material = 0;
@@ -52,12 +63,28 @@ export class AIEvaluator {
     }
 
     // 2. Center Control
-    const centerCount = state.pieces.filter(p => p.owner === playerId && isInCenter(p.position, boardSize, playerCount)).length;
+    const centerCount = state.pieces.filter(
+      (p) =>
+        p.owner === playerId && isInCenter(p.position, boardSize, playerCount),
+    ).length;
     const centerControl = centerCount * 2;
 
-    // 3. Risk (Simplified: number of pieces threatened)
+    // 3. Risk (Penalty for letting the King get threatened or exposing pieces)
     let risk = 0;
-    // (This would be expensive to calculate fully, so we use a simplified version)
+    const king = state.pieces.find(
+      (p) => p.owner === playerId && p.type === PieceType.King,
+    );
+    if (king) {
+      const isKingThreatened = state.pieces.some((enemy) => {
+        if (enemy.owner === playerId) return false;
+        return getMovesForPiece(enemy, state).some(
+          (m) => m.x === king.position.x && m.y === king.position.y,
+        );
+      });
+      if (isKingThreatened) {
+        risk += 10000; // Massive penalty for leaving the king in check
+      }
+    }
 
     // 4. Mobility
     let mobility = 0;
@@ -68,18 +95,21 @@ export class AIEvaluator {
     }
 
     const noiseBase =
-      options?.seed !== undefined ? seededNoise(options.seed) : Math.random() - 0.5;
+      options?.seed !== undefined
+        ? seededNoise(options.seed)
+        : Math.random() - 0.5;
 
     // Weighted score based on personality
-    const totalScore = 
+    const totalScore =
       material * (1 + personality.greed) +
       centerControl * (1 + personality.aggression) +
-      mobility * (1 - personality.riskTolerance) +
+      mobility * (1 - personality.riskTolerance) -
+      risk * (1 - personality.riskTolerance) +
       noiseBase * personality.randomness * 10;
 
     return {
       score: totalScore,
-      details: { material, centerControl, risk, mobility }
+      details: { material, centerControl, risk, mobility },
     };
   }
 }

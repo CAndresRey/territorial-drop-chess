@@ -3,7 +3,7 @@ import {
   PieceType,
   PlayerId,
   ValidationResult,
-} from './types';
+} from './types.js';
 
 export const FORMATION_PIECE_COUNT = 10;
 export const FORMATION_COST_RANGE = { min: 18, max: 21 } as const;
@@ -72,18 +72,20 @@ const BASE_FORMATIONS: Array<Omit<FormationTemplate, 'cost'>> = [
 export const calculateFormationCost = (pieces: PieceType[]): number =>
   pieces.reduce((acc, pieceType) => acc + FORMATION_PIECE_COST[pieceType], 0);
 
-export const DEFAULT_FORMATION_TEMPLATES: FormationTemplate[] = BASE_FORMATIONS.map(
-  (template) => ({
+export const DEFAULT_FORMATION_TEMPLATES: FormationTemplate[] =
+  BASE_FORMATIONS.map((template) => ({
     ...template,
     cost: calculateFormationCost(template.pieces),
-  }),
-);
+  }));
 
 export const validateFormationTemplate = (
   template: FormationTemplate,
 ): ValidationResult => {
   if (!template.id.trim() || !template.name.trim()) {
-    return { isValid: false, error: 'Formation template must include id and name' };
+    return {
+      isValid: false,
+      error: 'Formation template must include id and name',
+    };
   }
   if (template.pieces.length !== FORMATION_PIECE_COUNT) {
     return {
@@ -101,7 +103,10 @@ export const validateFormationTemplate = (
   );
 
   if ((counts[PieceType.King] ?? 0) !== 1) {
-    return { isValid: false, error: 'Formation template must contain exactly one king' };
+    return {
+      isValid: false,
+      error: 'Formation template must contain exactly one king',
+    };
   }
   if ((counts[PieceType.Veteran] ?? 0) > 0) {
     return {
@@ -110,24 +115,42 @@ export const validateFormationTemplate = (
     };
   }
   if ((counts[PieceType.Pawn] ?? 0) < 3) {
-    return { isValid: false, error: 'Formation template must include at least 3 pawns' };
+    return {
+      isValid: false,
+      error: 'Formation template must include at least 3 pawns',
+    };
   }
   if ((counts[PieceType.Rook] ?? 0) > 2) {
-    return { isValid: false, error: 'Formation template cannot include more than 2 rooks' };
+    return {
+      isValid: false,
+      error: 'Formation template cannot include more than 2 rooks',
+    };
   }
   if ((counts[PieceType.Guard] ?? 0) > 2) {
-    return { isValid: false, error: 'Formation template cannot include more than 2 guards' };
+    return {
+      isValid: false,
+      error: 'Formation template cannot include more than 2 guards',
+    };
   }
   if ((counts[PieceType.Bishop] ?? 0) > 2) {
-    return { isValid: false, error: 'Formation template cannot include more than 2 bishops' };
+    return {
+      isValid: false,
+      error: 'Formation template cannot include more than 2 bishops',
+    };
   }
   if ((counts[PieceType.Knight] ?? 0) > 2) {
-    return { isValid: false, error: 'Formation template cannot include more than 2 knights' };
+    return {
+      isValid: false,
+      error: 'Formation template cannot include more than 2 knights',
+    };
   }
 
   const computedCost = calculateFormationCost(template.pieces);
   if (template.cost !== computedCost) {
-    return { isValid: false, error: 'Formation template cost does not match piece composition' };
+    return {
+      isValid: false,
+      error: 'Formation template cost does not match piece composition',
+    };
   }
   if (
     template.cost < FORMATION_COST_RANGE.min ||
@@ -153,7 +176,9 @@ export const validateFormationSelection = (
   for (const template of templates) {
     const validation = validateFormationTemplate(template);
     if (!validation.isValid) {
-      throw new Error(`Invalid formation template "${template.id}": ${validation.error}`);
+      throw new Error(
+        `Invalid formation template "${template.id}": ${validation.error}`,
+      );
     }
     byId.set(template.id, template);
   }
@@ -181,4 +206,3 @@ export const validateFormationSelection = (
 
   return resolved;
 };
-

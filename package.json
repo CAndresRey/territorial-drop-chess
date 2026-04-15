@@ -8,16 +8,17 @@
   ],
   "scripts": {
     "lint": "npm run typecheck",
-    "typecheck": "tsc --noEmit -p apps/server/tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json",
-    "test:ci": "vitest --run apps/server/src apps/web/src/setup.contract.test.ts packages/engine/src packages/rules/src packages/turn-system/src packages/ai-core/src packages/ai-strategies/src packages/ai-manager/src packages/difficulty/src packages/sim/src",
-    "coverage": "vitest --run --coverage packages/engine/src packages/rules/src packages/turn-system/src packages/ai-core/src packages/ai-strategies/src packages/ai-manager/src packages/difficulty/src packages/sim/src",
+    "typecheck": "npx tsc --noEmit --project .",
+    "build:packages": "npm run build --workspace @tdc/engine && npm run build --workspace @tdc/rules && npm run build --workspace @tdc/setup-config",
+    "test:ci": "npm run build:packages && vitest --run apps/server/src apps/web/src/setup.contract.test.ts packages/engine/src packages/rules/src packages/turn-system/src packages/ai-core/src packages/ai-strategies/src packages/ai-manager/src packages/difficulty/src packages/sim/src",
+    "coverage": "npm run build:packages && vitest --run --coverage packages/engine/src packages/rules/src packages/turn-system/src packages/ai-core/src packages/ai-strategies/src packages/ai-manager/src packages/difficulty/src packages/sim/src",
     "ci": "npm run lint && npm run test:ci && npm run coverage && npm run build",
-    "build": "npm run build --workspace @tdc/server && npm run build --workspace @tdc/web",
+    "build": "npm run build:packages && npm run build --workspace @tdc/server && npm run build --workspace @tdc/web",
     "test": "npm run test:ci"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.1.2",
+    "@vitest/coverage-v8": "^4.1.4",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.4"
   }
 }

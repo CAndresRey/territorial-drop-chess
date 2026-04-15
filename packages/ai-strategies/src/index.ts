@@ -1,18 +1,19 @@
+import { AIEvaluator } from '@tdc/ai-core';
+import { DifficultyLevel, getDifficultyProfile } from '@tdc/difficulty';
 import {
+  Bot,
+  DecisionContext,
   GameState,
+  PIECE_VALUE,
+  PersonalityProfile,
   Piece,
   PieceType,
   PlayerAction,
   PlayerId,
-  Bot,
-  PersonalityProfile,
-  DecisionContext,
-} from '../../engine/src/types';
-import { applyAction } from '../../engine/src/moves';
-import { PIECE_VALUE } from '../../engine/src/moves';
-import { getMovesForPiece, isInCenter } from '../../engine/src/movement';
-import { AIEvaluator } from '../../ai-core/src/index';
-import { DifficultyLevel, getDifficultyProfile } from '../../difficulty/src/index';
+  applyAction,
+  getMovesForPiece,
+  isInCenter,
+} from '@tdc/engine';
 
 const actionSeedPart = (action: PlayerAction): string =>
   action.type === 'move'
@@ -22,7 +23,7 @@ const actionSeedPart = (action: PlayerAction): string =>
 export class BaseBot implements Bot {
   constructor(
     public id: PlayerId,
-    public personality: PersonalityProfile
+    public personality: PersonalityProfile,
   ) {}
 
   protected selectBestAction(
@@ -45,7 +46,7 @@ export class BaseBot implements Bot {
             ? undefined
             : `${context.seed}|${this.id}|${actionSeedPart(action)}`,
       });
-      
+
       if (evalResult.score > bestScore) {
         bestScore = evalResult.score;
         bestAction = action;
@@ -127,16 +128,7 @@ export class HeuristicBot extends BaseBot {
 
     if (context.legalActions.length === 0) return null as any;
 
-    if (this.currentPhase === 'combat' || this.currentPhase === 'endgame') {
-      const captureCandidate = selectBestImmediateCapture(
-        context.legalActions,
-        context.state,
-        this.id,
-      );
-      if (captureCandidate) {
-        return captureCandidate;
-      }
-    }
+    // evaluate captures properly through the personality weights, not by bypassing it!
 
     const objectiveCandidate = selectObjectiveAction(
       context.legalActions,
@@ -148,7 +140,10 @@ export class HeuristicBot extends BaseBot {
       return objectiveCandidate;
     }
 
-    return this.selectBestAction(context, this.toPhasePersonality(this.currentPhase));
+    return this.selectBestAction(
+      context,
+      this.toPhasePersonality(this.currentPhase),
+    );
   }
 }
 
@@ -199,7 +194,8 @@ export const isImmediateCaptureAction = (
   if (action.type !== 'move') return false;
 
   const targetPiece = state.pieces.find(
-    (piece) => piece.position.x === action.to.x && piece.position.y === action.to.y,
+    (piece) =>
+      piece.position.x === action.to.x && piece.position.y === action.to.y,
   );
   return !!targetPiece && targetPiece.owner !== playerId;
 };
@@ -208,11 +204,20 @@ const countOwnPiecesInCenter = (state: GameState, playerId: PlayerId): number =>
   state.pieces.filter(
     (piece) =>
       piece.owner === playerId &&
-      isInCenter(piece.position, state.config.boardSize, state.config.playerCount),
+      isInCenter(
+        piece.position,
+        state.config.boardSize,
+        state.config.playerCount,
+      ),
   ).length;
 
-const findPlayerKing = (state: GameState, playerId: PlayerId): Piece | undefined =>
-  state.pieces.find((piece) => piece.owner === playerId && piece.type === PieceType.King);
+const findPlayerKing = (
+  state: GameState,
+  playerId: PlayerId,
+): Piece | undefined =>
+  state.pieces.find(
+    (piece) => piece.owner === playerId && piece.type === PieceType.King,
+  );
 
 const countKingThreats = (state: GameState, playerId: PlayerId): number => {
   const king = findPlayerKing(state, playerId);
@@ -222,14 +227,22 @@ const countKingThreats = (state: GameState, playerId: PlayerId): number => {
   for (const piece of state.pieces) {
     if (piece.owner === playerId) continue;
     const moves = getMovesForPiece(piece, state);
-    if (moves.some((target) => target.x === king.position.x && target.y === king.position.y)) {
+    if (
+      moves.some(
+        (target) =>
+          target.x === king.position.x && target.y === king.position.y,
+      )
+    ) {
       threats += 1;
     }
   }
   return threats;
 };
 
-const countEnemyKingsThreatenedBy = (state: GameState, playerId: PlayerId): number => {
+const countEnemyKingsThreatenedBy = (
+  state: GameState,
+  playerId: PlayerId,
+): number => {
   const enemyKings = state.pieces.filter(
     (piece) => piece.owner !== playerId && piece.type === PieceType.King,
   );
@@ -242,7 +255,8 @@ const countEnemyKingsThreatenedBy = (state: GameState, playerId: PlayerId): numb
       .some((piece) => {
         const moves = getMovesForPiece(piece, state);
         return moves.some(
-          (target) => target.x === king.position.x && target.y === king.position.y,
+          (target) =>
+            target.x === king.position.x && target.y === king.position.y,
         );
       });
 
@@ -269,7 +283,8 @@ const captureValueFromAction = (
   if (action.type !== 'move') return 0;
 
   const target = state.pieces.find(
-    (piece) => piece.position.x === action.to.x && piece.position.y === action.to.y,
+    (piece) =>
+      piece.position.x === action.to.x && piece.position.y === action.to.y,
   );
   if (!target || target.owner === playerId) return 0;
   return PIECE_VALUE[target.type];
@@ -289,7 +304,11 @@ const dropTimingScore = (
     endgame: 0.7,
   };
 
-  const centerBonus = isInCenter(action.to, state.config.boardSize, state.config.playerCount)
+  const centerBonus = isInCenter(
+    action.to,
+    state.config.boardSize,
+    state.config.playerCount,
+  )
     ? 2.5
     : 0.5;
   return PIECE_VALUE[action.pieceType] * phaseWeight[phase] + centerBonus;
@@ -307,35 +326,35 @@ const objectiveWeightsByPhase: Record<
   }
 > = {
   opening: {
-    centerDelta: 2.8,
-    kingSafetyDelta: 2.1,
-    enemyKingPressureDelta: 0.7,
-    mobilityDelta: 0.35,
-    captureValue: 0.8,
+    centerDelta: 2.5,
+    kingSafetyDelta: 1.8,
+    enemyKingPressureDelta: 1.2,
+    mobilityDelta: 0.6,
+    captureValue: 2.5, // Aggressive: take material when available
     dropTiming: 1.0,
   },
   expansion: {
-    centerDelta: 2.1,
-    kingSafetyDelta: 2.4,
-    enemyKingPressureDelta: 0.9,
-    mobilityDelta: 0.25,
-    captureValue: 1.1,
+    centerDelta: 2.0,
+    kingSafetyDelta: 2.0,
+    enemyKingPressureDelta: 1.5,
+    mobilityDelta: 0.5,
+    captureValue: 3.0, // Very aggressive: expand through captures
     dropTiming: 1.5,
   },
   combat: {
     centerDelta: 0.8,
-    kingSafetyDelta: 3.0,
-    enemyKingPressureDelta: 1.4,
-    mobilityDelta: 0.2,
-    captureValue: 1.9,
+    kingSafetyDelta: 2.8,
+    enemyKingPressureDelta: 2.0,
+    mobilityDelta: 0.4,
+    captureValue: 4.0, // Maximum aggression
     dropTiming: 0.9,
   },
   endgame: {
-    centerDelta: 0.4,
-    kingSafetyDelta: 3.4,
-    enemyKingPressureDelta: 1.8,
-    mobilityDelta: 0.15,
-    captureValue: 2.2,
+    centerDelta: 0.5,
+    kingSafetyDelta: 3.2,
+    enemyKingPressureDelta: 2.5,
+    mobilityDelta: 0.3,
+    captureValue: 5.0, // All-in on captures for finishing
     dropTiming: 0.5,
   },
 };
@@ -349,24 +368,50 @@ export const scoreObjectiveAction = (
   const nextState = applyAction(action, state);
 
   const centerDelta =
-    countOwnPiecesInCenter(nextState, playerId) - countOwnPiecesInCenter(state, playerId);
-  const kingSafetyDelta = countKingThreats(state, playerId) - countKingThreats(nextState, playerId);
+    countOwnPiecesInCenter(nextState, playerId) -
+    countOwnPiecesInCenter(state, playerId);
+  const kingSafetyDelta =
+    countKingThreats(state, playerId) - countKingThreats(nextState, playerId);
   const enemyKingPressureDelta =
     countEnemyKingsThreatenedBy(nextState, playerId) -
     countEnemyKingsThreatenedBy(state, playerId);
-  const mobilityDelta = totalMobility(nextState, playerId) - totalMobility(state, playerId);
+  const mobilityDelta =
+    totalMobility(nextState, playerId) - totalMobility(state, playerId);
   const captureValue = captureValueFromAction(action, state, playerId);
   const dropTiming = dropTimingScore(action, state, phase);
 
   const weights = objectiveWeightsByPhase[phase];
-  return (
+  let baseScore =
     centerDelta * weights.centerDelta +
     kingSafetyDelta * weights.kingSafetyDelta +
     enemyKingPressureDelta * weights.enemyKingPressureDelta +
     mobilityDelta * weights.mobilityDelta +
     captureValue * weights.captureValue +
-    dropTiming * weights.dropTiming
-  );
+    dropTiming * weights.dropTiming;
+
+  // Anti-flip-flop penalty: if this move returns to where the piece was recently, penalize it heavily.
+  if (action.type === 'move') {
+    for (
+      let i = state.history.length - 1;
+      i >= Math.max(0, state.history.length - 4);
+      i--
+    ) {
+      const histActions = state.history[i].actions;
+      const prevAction = histActions.find(
+        (a) => a.type === 'move' && a.pieceId === action.pieceId,
+      ) as Extract<PlayerAction, { type: 'move' }>;
+      if (
+        prevAction &&
+        prevAction.from.x === action.to.x &&
+        prevAction.from.y === action.to.y
+      ) {
+        baseScore -= 10.0; // Huge penalty for repeating states
+        break;
+      }
+    }
+  }
+
+  return baseScore;
 };
 
 export const selectObjectiveAction = (
@@ -403,11 +448,15 @@ const captureActionValue = (
   state: GameState,
   playerId: PlayerId,
 ): number => {
-  if (!isImmediateCaptureAction(action, state, playerId) || action.type !== 'move') {
+  if (
+    !isImmediateCaptureAction(action, state, playerId) ||
+    action.type !== 'move'
+  ) {
     return -1;
   }
   const targetPiece = state.pieces.find(
-    (piece) => piece.position.x === action.to.x && piece.position.y === action.to.y,
+    (piece) =>
+      piece.position.x === action.to.x && piece.position.y === action.to.y,
   );
   if (!targetPiece) return -1;
   return PIECE_VALUE[targetPiece.type];
@@ -422,6 +471,27 @@ const selectBestImmediateCapture = (
   let bestValue = -1;
 
   for (const action of legalActions) {
+    let isFlipFlop = false;
+    if (action.type === 'move') {
+      for (
+        let i = state.history.length - 1;
+        i >= Math.max(0, state.history.length - 4);
+        i--
+      ) {
+        const prevAction = state.history[i].actions.find(
+          (a) => a.type === 'move' && a.pieceId === action.pieceId,
+        ) as Extract<PlayerAction, { type: 'move' }>;
+        if (
+          prevAction &&
+          prevAction.from.x === action.to.x &&
+          prevAction.from.y === action.to.y
+        ) {
+          isFlipFlop = true;
+          break;
+        }
+      }
+    }
+    if (isFlipFlop) continue;
     const value = captureActionValue(action, state, playerId);
     if (value > bestValue) {
       bestValue = value;

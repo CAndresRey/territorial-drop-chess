@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TerritoryControlRule } from './index';
-import { GameState, PieceType } from '../../engine/src/types';
+import { GameState, PieceType } from '@tdc/engine';
 
 const makePlayer = (id: string, squares: Array<{ x: number; y: number }>) => ({
   id,

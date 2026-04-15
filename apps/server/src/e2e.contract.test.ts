@@ -95,4 +95,123 @@ describe('Server E2E contract', () => {
     },
     15000,
   );
+
+  it('emits roomCreated and removes empty room on disconnect', async () => {
+    server = createRealtimeServer({ port: 0 });
+    const port = await server.start();
+
+    client = createClient(`http://127.0.0.1:${port}`, {
+      transports: ['websocket'],
+      reconnection: false,
+    });
+    await waitForSocketEvent(client, 'connect');
+
+    const roomCreatedPromise = waitForSocketEvent<{ roomId: string }>(
+      client,
+      'roomCreated',
+    );
+    client.emit('createGame', {
+      playerId: 'human',
+      config: {
+        playerCount: 2,
+      },
+      setup: {
+        botDifficulties: ['easy'],
+        formationSelections: {
+          human: DEFAULT_FORMATION_TEMPLATES[0].id,
+          bot_1: DEFAULT_FORMATION_TEMPLATES[0].id,
+        },
+        maxFocusPerTarget: 1,
+      },
+    });
+
+    const roomCreated = await roomCreatedPromise;
+    expect(roomCreated.roomId).toMatch(/^room_/);
+
+    const duringGame = await fetch(`http://127.0.0.1:${port}/health`).then((response) =>
+      response.json(),
+    );
+    expect(duringGame.roomsCount).toBe(1);
+
+    client.disconnect();
+    client = null;
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const afterDisconnect = await fetch(`http://127.0.0.1:${port}/health`).then((response) =>
+      response.json(),
+    );
+    expect(afterDisconnect.roomsCount).toBe(0);
+  });
+
+  it(
+    'applies advanced setup (formations + bot difficulties) into initial game state',
+    async () => {
+      server = createRealtimeServer({ port: 0 });
+      const port = await server.start();
+
+      client = createClient(`http://127.0.0.1:${port}`, {
+        transports: ['websocket'],
+        reconnection: false,
+      });
+      await waitForSocketEvent(client, 'connect');
+
+      const gameStatePromise = waitForSocketEvent<any>(client, 'gameState');
+      const roomCreatedPromise = waitForSocketEvent<{ roomId: string }>(
+        client,
+        'roomCreated',
+      );
+
+      client.emit('createGame', {
+        playerId: 'human',
+        config: {
+          playerCount: 4,
+          turnSystem: { type: 'simultaneous', maxRounds: 30, timerSeconds: 30 },
+          enabledRules: ['multi-threat', 'center-bonus', 'territory-control'],
+          scoring: { centerControl: 1, captureValue: {}, survivalBonus: 5 },
+          formation: {
+            enabled: true,
+            required: true,
+            templates: DEFAULT_FORMATION_TEMPLATES,
+          },
+        },
+        setup: {
+          botDifficulties: ['easy', 'normal', 'hard'],
+          formationSelections: {
+            human: DEFAULT_FORMATION_TEMPLATES[0].id,
+            bot_1: DEFAULT_FORMATION_TEMPLATES[1].id,
+            bot_2: DEFAULT_FORMATION_TEMPLATES[2].id,
+            bot_3: DEFAULT_FORMATION_TEMPLATES[0].id,
+          },
+          maxFocusPerTarget: 1,
+        },
+      });
+
+      const roomCreated = await roomCreatedPromise;
+      expect(roomCreated.roomId).toMatch(/^room_/);
+
+      const gameState = await gameStatePromise;
+      expect(gameState.status).toBe('playing');
+      expect(gameState.config.playerCount).toBe(4);
+      expect(gameState.config.boardSize).toBe(13);
+      expect(gameState.config.formation.enabled).toBe(true);
+      expect(Object.keys(gameState.players).sort()).toStrictEqual([
+        'bot_1',
+        'bot_2',
+        'bot_3',
+        'human',
+      ]);
+
+      const byOwner = Object.fromEntries(
+        Object.keys(gameState.players).map((id) => [
+          id,
+          gameState.pieces.filter((piece: any) => piece.owner === id).length,
+        ]),
+      );
+      expect(byOwner.human).toBeGreaterThan(0);
+      expect(byOwner.bot_1).toBeGreaterThan(0);
+      expect(byOwner.bot_2).toBeGreaterThan(0);
+      expect(byOwner.bot_3).toBeGreaterThan(0);
+    },
+    15000,
+  );
 });

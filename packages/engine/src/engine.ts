@@ -1,7 +1,7 @@
-import { getMovesForPiece } from './movement';
-import { validateAction } from './moves';
-import { GameState, PlayerAction, PlayerId } from './types';
-import { resolveRound } from './resolver';
+import { getMovesForPiece } from './movement.js';
+import { validateAction } from './moves.js';
+import { resolveRound } from './resolver.js';
+import { GameState, PlayerAction, PlayerId } from './types.js';
 
 const compareActions = (a: PlayerAction, b: PlayerAction): number => {
   if (a.type !== b.type) return a.type === 'move' ? -1 : 1;
@@ -11,7 +11,8 @@ const compareActions = (a: PlayerAction, b: PlayerAction): number => {
     return a.to.y - b.to.y;
   }
   if (a.type === 'drop' && b.type === 'drop') {
-    if (a.pieceType !== b.pieceType) return a.pieceType.localeCompare(b.pieceType);
+    if (a.pieceType !== b.pieceType)
+      return a.pieceType.localeCompare(b.pieceType);
     if (a.to.x !== b.to.x) return a.to.x - b.to.x;
     return a.to.y - b.to.y;
   }
@@ -76,7 +77,10 @@ export interface StateEvaluation {
 
 export const evaluateState = (state: GameState): StateEvaluation => {
   const scores = Object.fromEntries(
-    Object.entries(state.players).map(([playerId, player]) => [playerId, player.score]),
+    Object.entries(state.players).map(([playerId, player]) => [
+      playerId,
+      player.score,
+    ]),
   ) as Record<PlayerId, number>;
 
   const topScore = Math.max(...Object.values(scores));

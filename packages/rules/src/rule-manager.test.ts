@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RuleManager } from './index';
-import { GameState, PieceType, PlayerAction, RuleModule } from '../../engine/src/types';
+import { GameState, PieceType, PlayerAction, RuleModule } from '@tdc/engine';
 
 const makeState = (): GameState => ({
   config: {
